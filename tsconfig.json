@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "ESNext"
+    ],
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "strict": true
+  },
+  "include": [
+    "App.tsx"
+  ],
+  "extends": "expo/tsconfig.base"
+}

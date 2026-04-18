@@ -24,6 +24,7 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
 
     let mounted = true;
 
+    // Forlæs lydfilen, så klik-feedback kan afspilles uden forsinkelse.
     const prepareSound = async () => {
       try {
         const asset = Asset.fromModule(theme.sfx.buttonClick);
@@ -54,6 +55,7 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
   }, []);
 
   const playClick = async () => {
+    // Audio-API'en findes kun i web-runtime; native haandteres uden manuel afspilning her.
     const WebAudio = (globalThis as unknown as { Audio?: new (src?: string) => { volume: number; play: () => Promise<unknown> } }).Audio;
 
     if (Platform.OS !== 'web' || !clickSoundUri.current || !WebAudio) {
@@ -65,16 +67,19 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
       sound.volume = 0.9;
       await sound.play();
     } catch {
-      // Ignore audio errors to keep navigation responsive.
+      // Navigation ma aldrig blokeres af lydproblemer, sa fejl ignoreres bevidst.
     }
   };
 
   const handleRouteChange = (nextRoute: AppRoute) => {
+    // Lyd afspilles best effort; routing må ikke vente på async audio.
     void playClick();
     onRouteChange(nextRoute);
   };
 
   return (
+
+    // SafeAreaView sikrer, at navigationen ikke overlapper system UI som iPhone's home indicator.
     <SafeAreaView style={styles.navSafeArea}>
       <View style={[styles.nav, { backgroundColor: theme.colors.navColor }]}>
         <Pressable

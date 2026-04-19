@@ -140,6 +140,7 @@ export async function registerUser(input: RegisterInput): Promise<TestUser> {
   const lastname = normalizeValue(input.lastname);
   const email = normalizeValue(input.email).toLowerCase();
   const username = normalizeValue(input.username).toLowerCase();
+  const authEmail = toAuthEmail(username);
   const password = input.password;
 
   if (!firstname || !lastname || !email || !username || !password) {
@@ -148,11 +149,12 @@ export async function registerUser(input: RegisterInput): Promise<TestUser> {
 
   // 1) Opret auth-bruger i Supabase Auth.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
+    email: authEmail,
     password,
     options: {
       data: {
         username,
+        email,
       },
     },
   });

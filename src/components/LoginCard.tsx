@@ -68,7 +68,6 @@ export function LoginCard({
       {successMessage ? (
         <Text
           style={[styles.successText, { color: theme.colors.feedbackSuccess }]}
-          accessibilityRole="alert"
           accessibilityLiveRegion="polite"
         >
           {successMessage}

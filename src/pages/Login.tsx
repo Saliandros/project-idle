@@ -11,12 +11,14 @@ import {
 
 import { LoginCard } from "../components/LoginCard";
 import { RegisterCard } from "../components/RegisterCard";
+import { loginUser, registerUser } from "../services/Auth";
 import { theme } from "../theme/theme";
+import { TestUser } from "../types";
 
 type AuthView = "login" | "register";
 
 type LoginProps = {
-  onLogin?: () => void;
+  onLogin?: (user: TestUser) => void;
 };
 
 // Konstanter til baggrundspanorering - justeret for at give en subtil bevægelse uden at afsløre tomme kanter.
@@ -35,6 +37,10 @@ const FALLBACK_IMAGE_ASPECT_RATIO = 1.65;
 // for at skabe en engagerende oplevelse uden at stjæle fokus fra auth-kortene.
 export function Login({ onLogin }: LoginProps) {
   const [view, setView] = useState<AuthView>("login");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
+  const [isSubmittingRegister, setIsSubmittingRegister] = useState(false);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const motion = useRef(new Animated.Value(0)).current;
   const useNativeDriver = Platform.OS !== "web";
@@ -157,6 +163,56 @@ export function Login({ onLogin }: LoginProps) {
     };
   }, [horizontalShift, motion, useNativeDriver, verticalShift]);
 
+  const handleLoginSubmit = async (input: { username: string; password: string; keepLoggedIn: boolean }) => {
+    setLoginError(null);
+    setIsSubmittingLogin(true);
+
+    try {
+      const user = await loginUser(input.username, input.password);
+      onLogin?.(user);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Noget gik galt under login.';
+      setLoginError(message);
+    } finally {
+      setIsSubmittingLogin(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (input: {
+    firstname: string;
+    lastname: string;
+    email: string;
+    username: string;
+    password: string;
+    confirmPassword: string;
+  }) => {
+    setRegisterError(null);
+
+    if (input.password !== input.confirmPassword) {
+      setRegisterError('Password og bekræftet password skal være ens.');
+      return;
+    }
+
+    setIsSubmittingRegister(true);
+
+    try {
+      await registerUser({
+        firstname: input.firstname,
+        lastname: input.lastname,
+        email: input.email,
+        username: input.username,
+        password: input.password,
+      });
+      setView('login');
+      setLoginError('Konto oprettet. Du kan nu logge ind.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Noget gik galt under oprettelse.';
+      setRegisterError(message);
+    } finally {
+      setIsSubmittingRegister(false);
+    }
+  };
+
   return (
     <View
       style={styles.background}
@@ -187,10 +243,17 @@ export function Login({ onLogin }: LoginProps) {
         {view === "login" ? (
           <LoginCard
             onRegister={() => setView("register")}
-            onSubmit={onLogin}
+            onSubmit={handleLoginSubmit}
+            isSubmitting={isSubmittingLogin}
+            errorMessage={loginError}
           />
         ) : (
-          <RegisterCard onLogin={() => setView("login")} />
+          <RegisterCard
+            onLogin={() => setView("login")}
+            onSubmit={handleRegisterSubmit}
+            isSubmitting={isSubmittingRegister}
+            errorMessage={registerError}
+          />
         )}
       </View>
     </View>

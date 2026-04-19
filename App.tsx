@@ -8,16 +8,17 @@ import { EmbassyExchange } from './src/pages/EmbassyExchange';
 import { Factions } from './src/pages/Factions';
 import { Frontpage } from './src/pages/Frontpage';
 import { Login } from './src/pages/Login';
+import { TestUser } from './src/types';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
 
-  if (!isLoggedIn) {
+  if (!currentUser) {
     return (
       <>
         <StatusBar style="light" />
-        <Login onLogin={() => setIsLoggedIn(true)} />
+        <Login onLogin={setCurrentUser} />
       </>
     );
   }
@@ -31,7 +32,7 @@ export default function App() {
       return <EmbassyExchange onNavigate={setRoute} />;
     }
 
-    return <Frontpage onNavigate={setRoute} />;
+    return <Frontpage onNavigate={setRoute} currentUser={currentUser} />;
   })();
 
   return (

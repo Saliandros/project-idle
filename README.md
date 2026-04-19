@@ -61,3 +61,69 @@ Minimal React Native app sat op med Expo og TypeScript.
 - `src/theme/`: Farver, tokens og fælles visuelle designvalg.
 - `src/types/`: Delte TypeScript-typer og interfaces.
 - `src/utils/`: Små hjælpefunktioner og generelle utilities.
+
+Schema for DB:
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.champion_minigame (
+  champion_id uuid NOT NULL,
+  minigame_id uuid NOT NULL,
+  CONSTRAINT champion_minigame_pkey PRIMARY KEY (champion_id, minigame_id),
+  CONSTRAINT champion_minigame_champion_id_fkey FOREIGN KEY (champion_id) REFERENCES public.champions(id),
+  CONSTRAINT champion_minigame_minigame_id_fkey FOREIGN KEY (minigame_id) REFERENCES public.minigames(id)
+);
+CREATE TABLE public.champions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text,
+  faction_id uuid,
+  base_income integer,
+  CONSTRAINT champions_pkey PRIMARY KEY (id),
+  CONSTRAINT champions_faction_id_fkey FOREIGN KEY (faction_id) REFERENCES public.factions(id)
+);
+CREATE TABLE public.factions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text UNIQUE,
+  CONSTRAINT factions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.minigames (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text,
+  difficulty integer,
+  CONSTRAINT minigames_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.profile_champions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL,
+  champion_id uuid NOT NULL,
+  level integer NOT NULL DEFAULT 0,
+  CONSTRAINT profile_champions_pkey PRIMARY KEY (id),
+  CONSTRAINT profile_champions_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles(id),
+  CONSTRAINT profile_champions_champion_id_fkey FOREIGN KEY (champion_id) REFERENCES public.champions(id)
+);
+CREATE TABLE public.profile_factions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL,
+  faction_id uuid NOT NULL,
+  unlocked boolean DEFAULT false,
+  progress jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT profile_factions_pkey PRIMARY KEY (id),
+  CONSTRAINT profile_factions_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles(id),
+  CONSTRAINT profile_factions_faction_id_fkey FOREIGN KEY (faction_id) REFERENCES public.factions(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  username text UNIQUE,
+  income bigint DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.resources (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['gold'::text, 'wood'::text, 'iron'::text])),
+  amount bigint DEFAULT 0,
+  CONSTRAINT resources_pkey PRIMARY KEY (id),
+  CONSTRAINT resources_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles(id)
+);

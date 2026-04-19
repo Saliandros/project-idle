@@ -4,6 +4,15 @@ import { AppRoute } from '../constants/routes';
 import { EmbassyExchange } from '../pages/EmbassyExchange';
 import { Factions } from '../pages/Factions';
 import { Frontpage } from '../pages/Frontpage';
+import { TestUser } from '../types';
+
+const mockUser: TestUser = {
+  id: 0,
+  created_at: null,
+  firstname: 'Spiller',
+  lastname: 'Test',
+  username: 'testuser',
+};
 
 export function AppNavigator() {
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
@@ -16,5 +25,5 @@ export function AppNavigator() {
     return <Factions onNavigate={setRoute} />;
   }
 
-  return <Frontpage onNavigate={setRoute} />;
+  return <Frontpage onNavigate={setRoute} currentUser={mockUser} />;
 }

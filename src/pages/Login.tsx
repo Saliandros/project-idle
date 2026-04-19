@@ -38,6 +38,7 @@ const FALLBACK_IMAGE_ASPECT_RATIO = 1.65;
 export function Login({ onLogin }: LoginProps) {
   const [view, setView] = useState<AuthView>("login");
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
   const [isSubmittingRegister, setIsSubmittingRegister] = useState(false);
@@ -165,6 +166,7 @@ export function Login({ onLogin }: LoginProps) {
 
   const handleLoginSubmit = async (input: { username: string; password: string; keepLoggedIn: boolean }) => {
     setLoginError(null);
+    setLoginSuccess(null);
     setIsSubmittingLogin(true);
 
     try {
@@ -187,6 +189,7 @@ export function Login({ onLogin }: LoginProps) {
     confirmPassword: string;
   }) => {
     setRegisterError(null);
+    setLoginSuccess(null);
 
     if (input.password !== input.confirmPassword) {
       setRegisterError('Password og bekræftet password skal være ens.');
@@ -204,7 +207,8 @@ export function Login({ onLogin }: LoginProps) {
         password: input.password,
       });
       setView('login');
-      setLoginError('Konto oprettet. Du kan nu logge ind.');
+      setLoginError(null);
+      setLoginSuccess('Konto oprettet. Du kan nu logge ind.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Noget gik galt under oprettelse.';
       setRegisterError(message);
@@ -242,14 +246,23 @@ export function Login({ onLogin }: LoginProps) {
       >
         {view === "login" ? (
           <LoginCard
-            onRegister={() => setView("register")}
+            onRegister={() => {
+              setLoginError(null);
+              setLoginSuccess(null);
+              setView("register");
+            }}
             onSubmit={handleLoginSubmit}
             isSubmitting={isSubmittingLogin}
             errorMessage={loginError}
+            successMessage={loginSuccess}
           />
         ) : (
           <RegisterCard
-            onLogin={() => setView("login")}
+            onLogin={() => {
+              setRegisterError(null);
+              setLoginSuccess(null);
+              setView("login");
+            }}
             onSubmit={handleRegisterSubmit}
             isSubmitting={isSubmittingRegister}
             errorMessage={registerError}

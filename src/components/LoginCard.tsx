@@ -14,9 +14,16 @@ type LoginCardProps = {
   onSubmit: (input: LoginSubmitInput) => void | Promise<void>;
   isSubmitting?: boolean;
   errorMessage?: string | null;
+  successMessage?: string | null;
 };
 
-export function LoginCard({ onRegister, onSubmit, isSubmitting = false, errorMessage = null }: LoginCardProps) {
+export function LoginCard({
+  onRegister,
+  onSubmit,
+  isSubmitting = false,
+  errorMessage = null,
+  successMessage = null,
+}: LoginCardProps) {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -58,6 +65,7 @@ export function LoginCard({ onRegister, onSubmit, isSubmitting = false, errorMes
       </Pressable>
 
       {errorMessage ? <Text style={[styles.errorText, { color: theme.colors.feedbackError }]}>{errorMessage}</Text> : null}
+      {successMessage ? <Text style={[styles.successText, { color: theme.colors.feedbackSuccess }]}>{successMessage}</Text> : null}
 
       <Pressable style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} accessibilityRole="button" onPress={handleSubmit} disabled={isSubmitting}>
         <Text style={styles.submitButtonLabel}>{isSubmitting ? 'Logging in...' : 'Login'}</Text>
@@ -124,6 +132,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  successText: {
     fontSize: 14,
     textAlign: 'center',
   },

@@ -62,7 +62,9 @@ Minimal React Native app sat op med Expo og TypeScript.
 - `src/types/`: Delte TypeScript-typer og interfaces.
 - `src/utils/`: Små hjælpefunktioner og generelle utilities.
 
-Schema for DB:
+## Schema for DB
+
+```sql
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
@@ -127,3 +129,4 @@ CREATE TABLE public.resources (
   CONSTRAINT resources_pkey PRIMARY KEY (id),
   CONSTRAINT resources_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles(id)
 );
+```

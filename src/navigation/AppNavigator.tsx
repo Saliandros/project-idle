@@ -6,15 +6,11 @@ import { Factions } from '../pages/Factions';
 import { Frontpage } from '../pages/Frontpage';
 import { TestUser } from '../types';
 
-const mockUser: TestUser = {
-  id: 0,
-  created_at: null,
-  firstname: 'Spiller',
-  lastname: 'Test',
-  username: 'testuser',
+type AppNavigatorProps = {
+  currentUser: TestUser;
 };
 
-export function AppNavigator() {
+export function AppNavigator({ currentUser }: AppNavigatorProps) {
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
 
   if (route === AppRoute.Embassy_Exchange) {
@@ -25,5 +21,5 @@ export function AppNavigator() {
     return <Factions onNavigate={setRoute} />;
   }
 
-  return <Frontpage onNavigate={setRoute} currentUser={mockUser} />;
+  return <Frontpage onNavigate={setRoute} currentUser={currentUser} />;
 }

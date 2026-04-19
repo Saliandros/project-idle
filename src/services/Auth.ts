@@ -206,7 +206,16 @@ export async function loginUser(usernameInput: string, passwordInput: string): P
   }
 
   // Sikr at profil findes, hvis den mangler fra ældre dataflow.
-  await ensureProfile(userId, username);
+  // Hvis login sker med email, bruger vi metadata-username for ikke at overskrive med email.
+  const metadataUsername =
+    typeof signInData.user?.user_metadata?.username === 'string'
+      ? normalizeValue(signInData.user.user_metadata.username).toLowerCase()
+      : '';
+  const profileUsername = username.includes('@') ? metadataUsername : username;
+
+  if (profileUsername) {
+    await ensureProfile(userId, profileUsername);
+  }
 
   return getProfileAsUser(userId);
 }

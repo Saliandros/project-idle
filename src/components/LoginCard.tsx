@@ -65,7 +65,15 @@ export function LoginCard({
       </Pressable>
 
       {errorMessage ? <Text style={[styles.errorText, { color: theme.colors.feedbackError }]}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={[styles.successText, { color: theme.colors.feedbackSuccess }]}>{successMessage}</Text> : null}
+      {successMessage ? (
+        <Text
+          style={[styles.successText, { color: theme.colors.feedbackSuccess }]}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
+          {successMessage}
+        </Text>
+      ) : null}
 
       <Pressable style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} accessibilityRole="button" onPress={handleSubmit} disabled={isSubmitting}>
         <Text style={styles.submitButtonLabel}>{isSubmitting ? 'Logging in...' : 'Login'}</Text>

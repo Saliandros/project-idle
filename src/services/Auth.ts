@@ -32,7 +32,34 @@ function toAuthEmail(usernameOrEmail: string): string {
   return `${normalized}@project-idle.local`;
 }
 
+function getLocalPartFromEmail(value: string): string {
+  const normalized = normalizeValue(value).toLowerCase();
+  const separatorIndex = normalized.indexOf('@');
+
+  if (separatorIndex <= 0) {
+    return '';
+  }
+
+  return normalized.slice(0, separatorIndex);
+}
+
 async function ensureProfile(profileId: string, username: string): Promise<void> {
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', profileId)
+    .maybeSingle();
+
+  if (existingProfileError) {
+    throw new Error(`Kunne ikke hente profil til synkronisering: ${existingProfileError.message}`);
+  }
+
+  const existingUsername = normalizeValue(existingProfile?.username ?? '');
+
+  if (existingUsername.length > 0) {
+    return;
+  }
+
   const { error } = await supabase
     .from('profiles')
     .upsert({ id: profileId, username }, { onConflict: 'id' });
@@ -211,7 +238,9 @@ export async function loginUser(usernameInput: string, passwordInput: string): P
     typeof signInData.user?.user_metadata?.username === 'string'
       ? normalizeValue(signInData.user.user_metadata.username).toLowerCase()
       : '';
-  const profileUsername = username.includes('@') ? metadataUsername : username;
+  const isEmailLogin = username.includes('@');
+  const usernameFromEmail = isEmailLogin ? getLocalPartFromEmail(username) : '';
+  const profileUsername = isEmailLogin ? metadataUsername || usernameFromEmail : username;
 
   if (profileUsername) {
     await ensureProfile(userId, profileUsername);

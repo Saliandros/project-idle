@@ -4,8 +4,13 @@ import { AppRoute } from '../constants/routes';
 import { EmbassyExchange } from '../pages/EmbassyExchange';
 import { Factions } from '../pages/Factions';
 import { Frontpage } from '../pages/Frontpage';
+import { TestUser } from '../types';
 
-export function AppNavigator() {
+type AppNavigatorProps = {
+  currentUser: TestUser;
+};
+
+export function AppNavigator({ currentUser }: AppNavigatorProps) {
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
 
   if (route === AppRoute.Embassy_Exchange) {
@@ -16,5 +21,5 @@ export function AppNavigator() {
     return <Factions onNavigate={setRoute} />;
   }
 
-  return <Frontpage onNavigate={setRoute} />;
+  return <Frontpage onNavigate={setRoute} currentUser={currentUser} />;
 }

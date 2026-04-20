@@ -16,7 +16,7 @@ export function Factions({ onNavigate }: FactionsProps) {
 		>
 			<View style={styles.overlay}>
 				<View style={styles.page}>
-					<Text style={styles.title} onPress={() => onNavigate(AppRoute.Embassy_Exchange)}>
+					<Text style={styles.title}>
 						Factions
 					</Text>
 				</View>

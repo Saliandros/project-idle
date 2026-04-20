@@ -19,7 +19,7 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
 			<View style={styles.overlay}>
 				<View style={styles.page}>
 					<Text style={styles.welcomeText}>{`Hej og velkommen ${currentUser.username}`}</Text>
-					<Text style={styles.title} onPress={() => onNavigate(AppRoute.Factions)}>
+					<Text style={styles.title}>
 						Frontpage
 					</Text>
 				</View>

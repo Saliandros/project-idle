@@ -16,7 +16,7 @@ export function EmbassyExchange({ onNavigate }: EmbassyExchangeProps) {
 		>
 			<View style={styles.overlay}>
 				<View style={styles.page}>
-					<Text style={styles.title} onPress={() => onNavigate(AppRoute.Home)}>
+					<Text style={styles.title}>
 						Embassy Exchange
 					</Text>
 				</View>

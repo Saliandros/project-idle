@@ -24,11 +24,13 @@ export function LoginCard({
   errorMessage = null,
   successMessage = null,
 }: LoginCardProps) {
+  // Lokale felter til loginformularen.
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = () => {
+    // Parent står for selve auth-kaldet; her sendes kun input videre.
     void onSubmit({ username, password, keepLoggedIn });
   };
 
@@ -60,6 +62,7 @@ export function LoginCard({
         accessibilityState={{ checked: keepLoggedIn }}
         disabled={isSubmitting}
       >
+        {/* Enkel visuel checkbox til at huske brugerens valg. */}
         <View style={[styles.checkbox, keepLoggedIn && styles.checkboxChecked]} />
         <Text style={[styles.keepLoggedInText, { color: theme.colors.textPrimary }]}>Keep logged in</Text>
       </Pressable>

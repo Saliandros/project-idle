@@ -64,7 +64,5 @@ export type TestUser = {
   id: string | number;
   created_at: string | null;
   username: string;
-  firstname?: string;
-  lastname?: string;
   income?: number;
 };

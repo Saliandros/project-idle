@@ -2,11 +2,11 @@ import { supabase } from './supabase';
 import { TestUser } from '../types';
 
 type RegisterInput = {
-  firstname: string;
-  lastname: string;
-  email: string;
   username: string;
+  email: string;
   password: string;
+  firstname?: string;
+  lastname?: string;
 };
 
 type ProfileRow = {
@@ -162,15 +162,12 @@ async function getProfileAsUser(profileId: string): Promise<TestUser> {
 }
 
 export async function registerUser(input: RegisterInput): Promise<TestUser> {
-  // firstname/lastname kommer fra eksisterende UI. De ignoreres i denne DB-model.
-  const firstname = normalizeValue(input.firstname);
-  const lastname = normalizeValue(input.lastname);
   const email = normalizeValue(input.email).toLowerCase();
   const username = normalizeValue(input.username).toLowerCase();
   const authEmail = toAuthEmail(username);
   const password = input.password;
 
-  if (!firstname || !lastname || !email || !username || !password) {
+  if (!email || !username || !password) {
     throw new Error('Udfyld venligst alle felter.');
   }
 
@@ -180,6 +177,7 @@ export async function registerUser(input: RegisterInput): Promise<TestUser> {
     password,
     options: {
       data: {
+        display_name: username,
         username,
         email,
       },

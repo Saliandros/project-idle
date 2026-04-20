@@ -4,10 +4,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { theme } from '../theme/theme';
 
 type RegisterSubmitInput = {
-  firstname: string;
-  lastname: string;
-  email: string;
   username: string;
+  email: string;
   password: string;
   confirmPassword: string;
 };
@@ -20,33 +18,26 @@ type RegisterCardProps = {
 };
 
 export function RegisterCard({ onLogin, onSubmit, isSubmitting = false, errorMessage = null }: RegisterCardProps) {
-  const [firstname, setFirstname] = useState('');
-  const [lastname, setLastname] = useState('');
-  const [email, setEmail] = useState('');
+  // Lokale felter til registreringsformularen.
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = () => {
-    void onSubmit({ firstname, lastname, email, username, password, confirmPassword });
+    // Sender de indtastede værdier videre til parent, som håndterer registrering.
+    void onSubmit({ username, email, password, confirmPassword });
   };
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.navColor }]}>
       <TextInput
-        placeholder="Firstname"
+        placeholder="Username"
         placeholderTextColor="rgba(20, 20, 20, 0.65)"
         style={styles.input}
-        value={firstname}
-        onChangeText={setFirstname}
-        editable={!isSubmitting}
-      />
-      <TextInput
-        placeholder="Lastname"
-        placeholderTextColor="rgba(20, 20, 20, 0.65)"
-        style={styles.input}
-        value={lastname}
-        onChangeText={setLastname}
+        autoCapitalize="none"
+        value={username}
+        onChangeText={setUsername}
         editable={!isSubmitting}
       />
       <TextInput
@@ -58,15 +49,6 @@ export function RegisterCard({ onLogin, onSubmit, isSubmitting = false, errorMes
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
-        editable={!isSubmitting}
-      />
-      <TextInput
-        placeholder="Username"
-        placeholderTextColor="rgba(20, 20, 20, 0.65)"
-        style={styles.input}
-        autoCapitalize="none"
-        value={username}
-        onChangeText={setUsername}
         editable={!isSubmitting}
       />
       <TextInput
@@ -96,6 +78,7 @@ export function RegisterCard({ onLogin, onSubmit, isSubmitting = false, errorMes
 
       <View style={styles.loginRow}>
         <Text style={[styles.loginText, { color: theme.colors.textPrimary }]}>Already have an account </Text>
+        {/* Skifter tilbage til login-visning uden at sende data. */}
         <Pressable onPress={onLogin} accessibilityRole="link" disabled={isSubmitting}>
           <Text style={[styles.loginLink, { color: theme.colors.textPrimary }]}>login here</Text>
         </Pressable>

@@ -1,7 +1,8 @@
 import { Asset } from 'expo-asset';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
-import { Platform, Pressable, SafeAreaView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppRoute } from '../constants/routes';
 import { theme } from '../theme/theme';

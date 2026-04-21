@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import { StyleSheet, View, AppState } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { AppRoute } from './src/constants/routes';
@@ -16,14 +17,10 @@ export default function App() {
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
 
   useEffect(() => {
-    // Aggressiv skjuling af Android navigation bar for Samsung enheder
+    // Skjul Android navigation bar
     const hideNavigationBar = async () => {
       try {
         await NavigationBar.setVisibilityAsync('hidden');
-        await NavigationBar.setBackgroundColorAsync('#000000');
-        
-        // For Samsung enheder - prøv immersive mode
-        await NavigationBar.setPositionAsync('absolute');
         
         // Gentag efter kort tid for at være sikker
         setTimeout(async () => {
@@ -53,10 +50,10 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <>
+      <SafeAreaProvider>
         <StatusBar style="light" />
         <Login onLogin={setCurrentUser} />
-      </>
+      </SafeAreaProvider>
     );
   }
 
@@ -73,12 +70,14 @@ export default function App() {
   })();
 
   return (
-    <View style={styles.app}>
-      <StatusBar style="light" />
+    <SafeAreaProvider>
+      <View style={styles.app}>
+        <StatusBar style="light" />
 
-      <View style={styles.content}>{content}</View>
-      <BottomNavigation route={route} onRouteChange={setRoute} />
-    </View>
+        <View style={styles.content}>{content}</View>
+        <BottomNavigation route={route} onRouteChange={setRoute} />
+      </View>
+    </SafeAreaProvider>
   );
 }
 

@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, AppState } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
 
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { AppRoute } from './src/constants/routes';
@@ -13,6 +14,42 @@ import { TestUser } from './src/types';
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
+
+  useEffect(() => {
+    // Aggressiv skjuling af Android navigation bar for Samsung enheder
+    const hideNavigationBar = async () => {
+      try {
+        await NavigationBar.setVisibilityAsync('hidden');
+        await NavigationBar.setBackgroundColorAsync('#000000');
+        
+        // For Samsung enheder - prøv immersive mode
+        await NavigationBar.setPositionAsync('absolute');
+        
+        // Gentag efter kort tid for at være sikker
+        setTimeout(async () => {
+          await NavigationBar.setVisibilityAsync('hidden');
+        }, 500);
+        
+      } catch (error) {
+        console.log('Navigation bar error:', error);
+      }
+    };
+    
+    // Skjul navigation bar ved app start
+    hideNavigationBar();
+
+    // Lyt til app state changes (når skærmen tændes/slukkes)
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        // App kommer tilbage i fokus - skjul navigation bar igen
+        hideNavigationBar();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => subscription?.remove();
+  }, []);
 
   if (!currentUser) {
     return (

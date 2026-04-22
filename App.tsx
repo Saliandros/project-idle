@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { AppRoute } from './src/constants/routes';
+import { Champions } from './src/pages/Champions';
 import { EmbassyExchange } from './src/pages/EmbassyExchange';
 import { Factions } from './src/pages/Factions';
 import { Frontpage } from './src/pages/Frontpage';
@@ -66,6 +67,10 @@ export default function App() {
       return <EmbassyExchange onNavigate={setRoute} />;
     }
 
+    if (route === AppRoute.Champions) {
+      return <Champions onNavigate={setRoute} />;
+    }
+
     return <Frontpage onNavigate={setRoute} currentUser={currentUser} />;
   })();
 
@@ -88,5 +93,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingBottom: 84,
   },
 });

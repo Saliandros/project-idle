@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { AppRoute } from '../constants/routes';
+import { Champions } from '../pages/Champions';
 import { EmbassyExchange } from '../pages/EmbassyExchange';
 import { Factions } from '../pages/Factions';
 import { Frontpage } from '../pages/Frontpage';
@@ -15,6 +16,10 @@ export function AppNavigator({ currentUser }: AppNavigatorProps) {
 
   if (route === AppRoute.Embassy_Exchange) {
     return <EmbassyExchange onNavigate={setRoute} />;
+  }
+
+  if (route === AppRoute.Champions) {
+    return <Champions onNavigate={setRoute} />;
   }
 
   if (route === AppRoute.Factions) {

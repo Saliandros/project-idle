@@ -1,4 +1,4 @@
-import { ImageBackground, StyleSheet, Text, View, TouchableOpacity, Modal } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useState } from 'react';
 
 import { AppRoute } from '../constants/routes';
@@ -8,6 +8,8 @@ type FactionsProps = {
 	onNavigate: (route: AppRoute) => void;
 };
 
+const isWeb = Platform.OS === 'web';
+
 export function Factions({ onNavigate }: FactionsProps) {
 	const [activeFaction, setActiveFaction] = useState<'lizardman' | 'human' | 'elves'>('lizardman');
 	const [showLockedModal, setShowLockedModal] = useState(false);
@@ -16,6 +18,7 @@ export function Factions({ onNavigate }: FactionsProps) {
 	const handleFactionPress = (faction: 'lizardman' | 'human' | 'elves') => {
 		if (faction === 'lizardman') {
 			setActiveFaction(faction);
+			onNavigate(AppRoute.Champions);
 		} else {
 			// Gem faction navn og vis game-style popup for locked factions
 			let factionDisplayName: string = '';
@@ -111,10 +114,10 @@ const styles = StyleSheet.create({
 	overlay: {
 		flex: 1,
 		backgroundColor: 'rgba(0, 0, 0, 0.28)',
-		paddingTop: 50,
+		paddingTop: isWeb ? 20 : 50,
 	},
 	title: {
-		fontSize: 24,
+		fontSize: isWeb ? 32 : 24,
 		fontWeight: '700',
 		color: '#FFFFFF',
 		marginBottom: 30,
@@ -130,6 +133,8 @@ const styles = StyleSheet.create({
 		paddingVertical: 25,
 		paddingHorizontal: 20,
 		justifyContent: 'center',
+		borderBottomWidth: 1,
+		borderBottomColor: 'rgba(0, 0, 0, 0.65)',
 	},
 	unlockedBox: {
 		backgroundColor: 'rgba(69, 142, 54, 0.6)',
@@ -138,13 +143,13 @@ const styles = StyleSheet.create({
 		backgroundColor: 'rgba(142, 54, 54, 0.6)',
 	},
 	factionText: {
-		fontSize: 18,
+		fontSize: isWeb ? 20 : 18,
 		fontWeight: '600',
 		color: '#FFFFFF',
 	},
 	activeFaction: {
-		borderWidth: 3,
-		borderColor: '#FFFFFF',
+		borderWidth: 1,
+		borderColor: 'rgba(0, 0, 0, 0.65)',
 		backgroundColor: 'rgba(69, 142, 54, 0.8)',
 	},
 	activeFactionText: {
@@ -183,14 +188,14 @@ const styles = StyleSheet.create({
 		textShadowRadius: 3,
 	},
 	modalMessage: {
-		fontSize: 18,
+		fontSize: isWeb ? 19 : 18,
 		fontWeight: '600',
 		color: '#FFFFFF',
 		textAlign: 'center',
 		marginBottom: 10,
 	},
 	modalSubtext: {
-		fontSize: 14,
+		fontSize: isWeb ? 15 : 14,
 		color: '#CCCCCC',
 		textAlign: 'center',
 		marginBottom: 25,

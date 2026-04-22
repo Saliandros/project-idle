@@ -1,4 +1,4 @@
-import { ImageBackground, StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View, TouchableOpacity, Image, Platform } from 'react-native';
 import { useState } from 'react';
 
 import { AppRoute } from '../constants/routes';
@@ -9,6 +9,8 @@ type FrontpageProps = {
     onNavigate: (route: AppRoute) => void;
     currentUser: TestUser;
 };
+
+const isWeb = Platform.OS === 'web';
 
 export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
     const [clicks, setClicks] = useState(0);
@@ -33,15 +35,18 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
                     <Text style={styles.title}>Lizardman</Text>
                     <View style={styles.resourceSection}>
                         <View style={styles.resourceItem}>
+                            <Text style={styles.resourceValue}>{clicks}</Text>
                             <Image
                                 source={require('../../assets/images/Factions/Lizardman/Lizardman clicker icon.png')}
                                 style={styles.resourceIcon}
                             />
-                            <Text style={styles.resourceValue}>{clicks} Meat</Text>
                         </View>
                         <View style={styles.resourceItem}>
-                            <Text style={styles.resourceIconText}>🪙</Text>
                             <Text style={styles.resourceValue}>1485</Text>
+                            <Image
+                                source={require('../../assets/images/General/coin.png')}
+                                style={styles.resourceIcon}
+                            />
                         </View>
                     </View>
                 </View>
@@ -78,12 +83,12 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.28)',
     },
     headerSection: {
-        paddingTop: 50,
+        paddingTop: isWeb ? 20 : 50,
         paddingHorizontal: 16,
         alignItems: 'flex-start',
     },
     title: {
-        fontSize: 24,
+        fontSize: isWeb ? 32 : 24,
         fontWeight: '700',
         color: '#FFFFFF',
         marginBottom: 12,
@@ -96,17 +101,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        backgroundColor: theme.colors.background,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
     },
     resourceIcon: {
         width: 20,
         height: 20,
         borderRadius: 10,
     },
-    resourceIconText: {
-        fontSize: 20,
-    },
     resourceValue: {
-        fontSize: 16,
+        fontSize: isWeb ? 18 : 16,
         fontWeight: '600',
         color: '#FFFFFF',
     },
@@ -120,10 +126,10 @@ const styles = StyleSheet.create({
         marginVertical: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        width: 160,
-        height: 160,
+        width: isWeb ? 190 : 160,
+        height: isWeb ? 190 : 160,
         backgroundColor: theme.colors.background,
-        borderRadius: 80,
+        borderRadius: isWeb ? 95 : 80,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -131,8 +137,9 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     clickerIcon: {
-        width: 150,
-        height: 150,
-        borderRadius: 75,
+        width: isWeb ? 178 : 150,
+        height: isWeb ? 178 : 150,
+        borderRadius: isWeb ? 89 : 75,
     },
 });
+

@@ -1,7 +1,7 @@
-import { Asset } from 'expo-asset';
 import { Ionicons } from '@expo/vector-icons';
+import { Asset } from 'expo-asset';
 import { useEffect, useRef } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppRoute } from '../constants/routes';
@@ -14,9 +14,11 @@ type BottomNavigationProps = {
 
 export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps) {
   const clickSoundUri = useRef<string | null>(null);
+  const { width } = useWindowDimensions();
   const isHome = route === AppRoute.Home;
   const isFactions = route === AppRoute.Factions;
   const isEmbassyExchange = route === AppRoute.Embassy_Exchange;
+  const isDesktopWeb = Platform.OS === 'web' && width >= 1024;
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -25,7 +27,6 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
 
     let mounted = true;
 
-    // Forlæs lydfilen, så klik-feedback kan afspilles uden forsinkelse.
     const prepareSound = async () => {
       try {
         const asset = Asset.fromModule(theme.sfx.buttonClick);
@@ -56,8 +57,9 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
   }, []);
 
   const playClick = async () => {
-    // Audio-API'en findes kun i web-runtime; native haandteres uden manuel afspilning her.
-    const WebAudio = (globalThis as unknown as { Audio?: new (src?: string) => { volume: number; play: () => Promise<unknown> } }).Audio;
+    const WebAudio = (globalThis as unknown as {
+      Audio?: new (src?: string) => { volume: number; play: () => Promise<unknown> };
+    }).Audio;
 
     if (Platform.OS !== 'web' || !clickSoundUri.current || !WebAudio) {
       return;
@@ -68,19 +70,23 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
       sound.volume = 0.9;
       await sound.play();
     } catch {
-      // Navigation ma aldrig blokeres af lydproblemer, sa fejl ignoreres bevidst.
+      // Navigation should continue even if audio playback fails.
     }
   };
 
   const handleRouteChange = (nextRoute: AppRoute) => {
-    // Lyd afspilles best effort; routing må ikke vente på async audio.
     void playClick();
     onRouteChange(nextRoute);
   };
 
-  return (
+  const renderNavContent = (icon: keyof typeof Ionicons.glyphMap, label: string) => (
+    <View style={[styles.navButtonContent, isDesktopWeb && styles.navButtonContentDesktop]}>
+      <Ionicons name={icon} size={28} color={theme.colors.textPrimary} />
+      {isDesktopWeb ? <Text style={styles.navButtonLabel}>{label}</Text> : null}
+    </View>
+  );
 
-    // SafeAreaView sikrer, at navigationen ikke overlapper system UI som iPhone's home indicator.
+  return (
     <SafeAreaView style={styles.navSafeArea}>
       <View style={[styles.nav, { backgroundColor: theme.colors.navColor }]}>
         <Pressable
@@ -89,23 +95,27 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
           accessibilityLabel="Home"
           onPress={() => handleRouteChange(AppRoute.Home)}
         >
-          <Ionicons name={isHome ? 'home' : 'home-outline'} size={28} color={theme.colors.textPrimary} />
+          {renderNavContent(isHome ? 'home' : 'home-outline', 'Home')}
         </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.navButton, isFactions && styles.navButtonActive, pressed && styles.navButtonPressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Factions"
-          onPress={() => handleRouteChange(AppRoute.Factions)}
-        >
-          <Ionicons name="shield-half" size={28} color={theme.colors.textPrimary} />
-        </Pressable>
+
+        {!isDesktopWeb ? (
+          <Pressable
+            style={({ pressed }) => [styles.navButton, isFactions && styles.navButtonActive, pressed && styles.navButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Factions"
+            onPress={() => handleRouteChange(AppRoute.Factions)}
+          >
+            {renderNavContent('shield-half', 'Factions')}
+          </Pressable>
+        ) : null}
+
         <Pressable
           style={({ pressed }) => [styles.navButton, isEmbassyExchange && styles.navButtonActive, pressed && styles.navButtonPressed]}
           accessibilityRole="button"
           accessibilityLabel="Embassy"
           onPress={() => handleRouteChange(AppRoute.Embassy_Exchange)}
         >
-          <Ionicons name="swap-horizontal" size={28} color={theme.colors.textPrimary} />
+          {renderNavContent('swap-horizontal', 'Embassy Exchange')}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -135,6 +145,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  navButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navButtonContentDesktop: {
+    gap: 10,
+  },
+  navButtonLabel: {
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
   },
   navButtonActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

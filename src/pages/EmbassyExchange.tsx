@@ -26,6 +26,18 @@ const unlockPlaceholders = [
 	{ name: 'Lizardman', unlocked: true },
 	{ name: 'Orcs', unlocked: false },
 	{ name: 'Goblin Tribes', unlocked: false },
+	{ name: 'Dwarves', unlocked: false },
+	{ name: 'High Elves', unlocked: false },
+	{ name: 'Dark Elves', unlocked: false },
+	{ name: 'Wood Elves', unlocked: false },
+	{ name: 'Ogres', unlocked: false },
+	{ name: 'Undead Legion', unlocked: false },
+	{ name: 'Beastmen', unlocked: false },
+	{ name: 'Nomad Clans', unlocked: false },
+	{ name: 'Sand Kingdoms', unlocked: false },
+	{ name: 'Frostborn', unlocked: false },
+	{ name: 'Dragon Court', unlocked: false },
+	{ name: 'Serpent Cult', unlocked: false },
 ];
 
 const isWeb = Platform.OS === 'web';
@@ -34,6 +46,8 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [selectedResourceId, setSelectedResourceId] = useState<EmbassyResourceId>('meat');
 	const [showUnlockModal, setShowUnlockModal] = useState(false);
+	const [unlockViewportHeight, setUnlockViewportHeight] = useState(0);
+	const [unlockContentHeight, setUnlockContentHeight] = useState(0);
 
 	const selectedResource = useMemo(
 		() => resourceOptions.find((option) => option.id === selectedResourceId) ?? resourceOptions[0],
@@ -57,6 +71,7 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 		setSelectedResourceId(resourceId);
 		setIsDropdownOpen(false);
 	};
+	const isUnlockScrollEnabled = unlockContentHeight > unlockViewportHeight;
 
 	return (
 		<ImageBackground
@@ -140,9 +155,11 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 						<ScrollView
 							style={[styles.unlockList, Platform.OS === 'web' && styles.unlockListWeb]}
 							contentContainerStyle={[styles.unlockListContent, isWeb && styles.unlockListContentWeb]}
-							showsVerticalScrollIndicator={Platform.OS === 'web'}
-							persistentScrollbar={Platform.OS === 'web'}
-							scrollEnabled={true}
+							showsVerticalScrollIndicator={isUnlockScrollEnabled}
+							persistentScrollbar={isUnlockScrollEnabled}
+							scrollEnabled={isUnlockScrollEnabled}
+							onLayout={(event) => setUnlockViewportHeight(event.nativeEvent.layout.height)}
+							onContentSizeChange={(_, contentHeight) => setUnlockContentHeight(contentHeight)}
 						>
 							{sortedUnlockRows.map((item) => (
 								<TouchableOpacity
@@ -173,11 +190,6 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 							))}
 						</ScrollView>
 
-						{Platform.OS === 'web' ? (
-							<View style={styles.scrollRail} pointerEvents="none">
-								<View style={styles.scrollThumb} />
-							</View>
-						) : null}
 					</View>
 				</View>
 
@@ -251,7 +263,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: '100%',
 		width: undefined,
-		borderRadius: 10,
 	},
 	exchangePanelImage: {
 		opacity: 0.95,
@@ -404,7 +415,6 @@ const styles = StyleSheet.create({
 	unlockScrollAreaWeb: {
 		flex: 1,
 		borderTopWidth: 0,
-		borderRadius: 10,
 		overflow: 'hidden',
 	},
 	unlockListContent: {
@@ -412,21 +422,6 @@ const styles = StyleSheet.create({
 	},
 	unlockListContentWeb: {
 		paddingBottom: 24,
-	},
-	scrollRail: {
-		position: 'absolute',
-		right: 3,
-		top: 10,
-		bottom: 126,
-		width: 5,
-		borderRadius: 3,
-		backgroundColor: 'rgba(0, 0, 0, 0.35)',
-	},
-	scrollThumb: {
-		width: '100%',
-		height: 42,
-		borderRadius: 3,
-		backgroundColor: 'rgba(255, 255, 255, 0.55)',
 	},
 	unlockRow: {
 		width: '100%',

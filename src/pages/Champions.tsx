@@ -1,6 +1,9 @@
 import { Image, ImageBackground, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { AppRoute } from '../constants/routes';
+import { championDefinitions } from '../data/champions';
+import { factionDefinitions } from '../data/factions';
+import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
 
 type ChampionsProps = {
@@ -10,6 +13,11 @@ type ChampionsProps = {
 const isWeb = Platform.OS === 'web';
 
 export function Champions({ onNavigate: _onNavigate }: ChampionsProps) {
+	const activeFactionId = useGameStore((state) => state.activeFactionId);
+	const championLevels = useGameStore((state) => state.championLevels);
+	const activeFaction = factionDefinitions.find((faction) => faction.id === activeFactionId) ?? factionDefinitions[0];
+	const visibleChampions = championDefinitions.filter((champion) => champion.factionId === activeFaction.id);
+
 	return (
 		<ImageBackground
 			source={require('../../assets/images/Factions/Lizardman/Shattered Isles Map.png')}
@@ -20,51 +28,50 @@ export function Champions({ onNavigate: _onNavigate }: ChampionsProps) {
 			<View style={styles.overlay}>
 				<Text style={styles.title}>Factions</Text>
 				<View style={styles.divider} />
-				<Text style={styles.factionName}>Lizardmen</Text>
+				<Text style={styles.factionName}>{activeFaction.label}</Text>
 
 				<View style={styles.list}>
-					<View style={styles.row}>
-						<ImageBackground
-							source={require('../../assets/images/Factions/Lizardman/Saliandros.png')}
-							style={styles.championPreview}
-							imageStyle={styles.championPreviewImage}
-							resizeMode="cover"
-						>
-							<View style={styles.previewOverlay}>
-								<Text style={styles.championName}>Saliandros</Text>
-								<View style={styles.priceRow}>
-									<Image
-										source={require('../../assets/images/General/meat.png')}
-										style={styles.meatIcon}
-									/>
-									<Text style={styles.championPrice}>25</Text>
+					{visibleChampions.map((champion) => (
+						<View key={champion.id} style={styles.row}>
+							{champion.previewImage ? (
+								<ImageBackground
+									source={champion.previewImage}
+									style={styles.championPreview}
+									imageStyle={styles.championPreviewImage}
+									resizeMode="cover"
+								>
+									<View style={styles.previewOverlay}>
+										<Text style={styles.championName}>{champion.name}</Text>
+										<View style={styles.priceRow}>
+											<Image
+												source={require('../../assets/images/General/meat.png')}
+												style={styles.meatIcon}
+											/>
+											<Text style={styles.championPrice}>{champion.costAmount}</Text>
+										</View>
+									</View>
+								</ImageBackground>
+							) : (
+								<View style={styles.championPreviewEmpty}>
+									<View style={styles.previewOverlay}>
+										<Text style={styles.championName}>{champion.name}</Text>
+										<View style={styles.priceRow}>
+											<Image
+												source={require('../../assets/images/General/meat.png')}
+												style={styles.meatIcon}
+											/>
+											<Text style={styles.championPrice}>{champion.costAmount}</Text>
+										</View>
+									</View>
 								</View>
-							</View>
-						</ImageBackground>
-						<View style={styles.levelCol}>
-							<Text style={styles.levelLabel}>LEVEL</Text>
-							<Text style={styles.levelValue}>0</Text>
-						</View>
-					</View>
+							)}
 
-					<View style={styles.row}>
-						<View style={styles.championPreviewEmpty}>
-							<View style={styles.previewOverlay}>
-								<Text style={styles.championName}>Kroxigar</Text>
-								<View style={styles.priceRow}>
-									<Image
-										source={require('../../assets/images/General/meat.png')}
-										style={styles.meatIcon}
-									/>
-									<Text style={styles.championPrice}>500</Text>
-								</View>
+							<View style={styles.levelCol}>
+								<Text style={styles.levelLabel}>LEVEL</Text>
+								<Text style={styles.levelValue}>{championLevels[champion.id] ?? 0}</Text>
 							</View>
 						</View>
-						<View style={styles.levelCol}>
-							<Text style={styles.levelLabel}>LEVEL</Text>
-							<Text style={styles.levelValue}>0</Text>
-						</View>
-					</View>
+					))}
 				</View>
 			</View>
 		</ImageBackground>

@@ -7,6 +7,16 @@
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.anonymous.projectidle"
-    }
+    },
+    "plugins": [
+      [
+        "expo-navigation-bar",
+        {
+          "visibility": "hidden",
+          "behavior": "inset-swipe",
+          "backgroundColor": "#000000"
+        }
+      ]
+    ]
   }
 }

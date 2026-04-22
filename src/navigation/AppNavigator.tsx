@@ -1,20 +1,30 @@
 import { useState } from 'react';
 
 import { AppRoute } from '../constants/routes';
-import { DetailsPage } from '../pages/DetailsPage';
-import { HomePage } from '../pages/HomePage';
-import { SettingsPage } from '../pages/SettingsPage';
+import { Champions } from '../pages/Champions';
+import { EmbassyExchange } from '../pages/EmbassyExchange';
+import { Factions } from '../pages/Factions';
+import { Frontpage } from '../pages/Frontpage';
+import { TestUser } from '../types';
 
-export function AppNavigator() {
+type AppNavigatorProps = {
+  currentUser: TestUser;
+};
+
+export function AppNavigator({ currentUser }: AppNavigatorProps) {
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
 
-  if (route === AppRoute.Details) {
-    return <DetailsPage onNavigate={setRoute} />;
+  if (route === AppRoute.Embassy_Exchange) {
+    return <EmbassyExchange onNavigate={setRoute} />;
   }
 
-  if (route === AppRoute.Settings) {
-    return <SettingsPage onNavigate={setRoute} />;
+  if (route === AppRoute.Champions) {
+    return <Champions onNavigate={setRoute} />;
   }
 
-  return <HomePage onNavigate={setRoute} />;
+  if (route === AppRoute.Factions) {
+    return <Factions onNavigate={setRoute} />;
+  }
+
+  return <Frontpage onNavigate={setRoute} currentUser={currentUser} />;
 }

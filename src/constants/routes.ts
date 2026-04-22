@@ -1,5 +1,6 @@
 export enum AppRoute {
   Home = 'Home',
-  Details = 'Details',
-  Settings = 'Settings',
+  Factions = 'Factions',
+  Embassy_Exchange = 'Embassy Exchange',
+  Champions = 'Champions',
 }

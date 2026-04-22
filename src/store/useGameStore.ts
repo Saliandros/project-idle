@@ -9,7 +9,10 @@ import { toRawResourceAmount } from '../utils/resources';
 type GameStore = GameState & {
   applyIdleTick: (seconds: number) => void;
   exchangeResource: (resourceId: ResourceId, amount: number) => boolean;
+  hydrateGameState: (state: Partial<GameState>) => void;
   performClick: () => void;
+  resetGameState: () => void;
+  unlockFaction: (factionId: GameState['activeFactionId']) => boolean;
   upgradeChampion: (championId: string) => boolean;
   setActiveFaction: (factionId: GameState['activeFactionId']) => void;
   setResource: (resourceId: ResourceId, value: number) => void;
@@ -32,20 +35,24 @@ function getChampionProductionPerSecond(championId: string, level: number) {
   };
 }
 
-const initialState: GameState = {
-  activeFactionId: 'lizardman',
-  unlockedFactionIds: ['lizardman'],
-  championLevels: {
-    saliandros: 0,
-    kroxigar: 0,
-  },
-  resources: {
-    clicks: 0,
-    gold: 0,
-    iron: 0,
-    meat: 0,
-  },
-};
+function createInitialState(): GameState {
+  return {
+    activeFactionId: 'lizardman',
+    unlockedFactionIds: ['lizardman'],
+    championLevels: {
+      saliandros: 0,
+      kroxigar: 0,
+    },
+    resources: {
+      clicks: 0,
+      gold: 0,
+      iron: toRawResourceAmount('iron', 50),
+      meat: 0,
+    },
+  };
+}
+
+const initialState = createInitialState();
 
 export const useGameStore = create<GameStore>((set) => ({
   ...initialState,
@@ -114,6 +121,17 @@ export const useGameStore = create<GameStore>((set) => ({
 
     return didExchange;
   },
+  hydrateGameState: (nextState) =>
+    set((state) => ({
+      activeFactionId: nextState.activeFactionId ?? state.activeFactionId,
+      unlockedFactionIds: nextState.unlockedFactionIds ?? state.unlockedFactionIds,
+      championLevels: nextState.championLevels
+        ? { ...state.championLevels, ...nextState.championLevels }
+        : state.championLevels,
+      resources: nextState.resources
+        ? { ...state.resources, ...nextState.resources }
+        : state.resources,
+    })),
   performClick: () =>
     set((state) => {
       const activeFaction =
@@ -176,4 +194,34 @@ export const useGameStore = create<GameStore>((set) => ({
         [resourceId]: toRawResourceAmount(resourceId, value),
       },
     })),
+  resetGameState: () => set(() => createInitialState()),
+  unlockFaction: (factionId) => {
+    let didUnlock = false;
+
+    set((state) => {
+      const faction = factionDefinitions.find((entry) => entry.id === factionId);
+
+      if (!faction || state.unlockedFactionIds.includes(factionId)) {
+        return state;
+      }
+
+      const unlockCostRaw = toRawResourceAmount('gold', faction.unlockCostGold);
+
+      if (state.resources.gold < unlockCostRaw) {
+        return state;
+      }
+
+      didUnlock = true;
+
+      return {
+        unlockedFactionIds: [...state.unlockedFactionIds, factionId],
+        resources: {
+          ...state.resources,
+          gold: state.resources.gold - unlockCostRaw,
+        },
+      };
+    });
+
+    return didUnlock;
+  },
 }));

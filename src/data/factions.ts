@@ -8,6 +8,7 @@ export const factionDefinitions: FactionDefinition[] = [
     clickResourceId: 'meat',
     clickValue: 1,
     lockedName: 'The Lizardmen',
+    unlockCostGold: 0,
     route: AppRoute.Champions,
   },
   {
@@ -16,6 +17,7 @@ export const factionDefinitions: FactionDefinition[] = [
     clickResourceId: 'clicks',
     clickValue: 1,
     lockedName: 'The Humen',
+    unlockCostGold: 5,
     route: null,
   },
   {
@@ -24,6 +26,7 @@ export const factionDefinitions: FactionDefinition[] = [
     clickResourceId: 'clicks',
     clickValue: 1,
     lockedName: 'The Elves',
+    unlockCostGold: 5,
     route: null,
   },
 ];

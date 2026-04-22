@@ -19,6 +19,7 @@ export type FactionDefinition = {
   clickResourceId: ResourceId;
   clickValue: number;
   lockedName: string;
+  unlockCostGold: number;
   route: AppRoute | null;
 };
 

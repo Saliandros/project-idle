@@ -11,13 +11,19 @@ import { EmbassyExchange } from './src/pages/EmbassyExchange';
 import { Factions } from './src/pages/Factions';
 import { Frontpage } from './src/pages/Frontpage';
 import { Login } from './src/pages/Login';
+import { loadGameProgress, saveGameProgress } from './src/services/gameProgress';
 import { useGameStore } from './src/store/useGameStore';
 import { TestUser } from './src/types';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
+  const [isGameReady, setIsGameReady] = useState(false);
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
+  const [autoSaveState, setAutoSaveState] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
   const applyIdleTick = useGameStore((state) => state.applyIdleTick);
+  const hydrateGameState = useGameStore((state) => state.hydrateGameState);
+  const resetGameState = useGameStore((state) => state.resetGameState);
 
   useEffect(() => {
     // Skjul Android navigation bar
@@ -53,6 +59,8 @@ export default function App() {
 
   useEffect(() => {
     if (!currentUser) {
+      setIsGameReady(false);
+      resetGameState();
       return;
     }
 
@@ -61,13 +69,152 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [applyIdleTick, currentUser]);
+  }, [applyIdleTick, currentUser, resetGameState]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function hydrateFromDatabase() {
+      if (!currentUser || typeof currentUser.id !== 'string') {
+        return;
+      }
+
+      setIsGameReady(false);
+
+      try {
+        const gameState = await loadGameProgress(currentUser.id);
+
+        if (isCancelled) {
+          return;
+        }
+
+        hydrateGameState(gameState);
+      } catch (error) {
+        console.log('Game progress load error:', error);
+      } finally {
+        if (!isCancelled) {
+          setIsGameReady(true);
+        }
+      }
+    }
+
+    hydrateFromDatabase();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentUser, hydrateGameState]);
+
+  useEffect(() => {
+    if (!currentUser || typeof currentUser.id !== 'string' || !isGameReady) {
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isDisposed = false;
+
+    const unsubscribe = useGameStore.subscribe((state) => {
+      setAutoSaveState('pending');
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      timeoutId = setTimeout(() => {
+        setAutoSaveState('saving');
+
+        saveGameProgress(currentUser.id as string, {
+          activeFactionId: state.activeFactionId,
+          championLevels: state.championLevels,
+          resources: state.resources,
+          unlockedFactionIds: state.unlockedFactionIds,
+        })
+          .then(() => {
+            if (isDisposed) {
+              return;
+            }
+
+            setLastAutoSavedAt(new Date());
+            setAutoSaveState('saved');
+          })
+          .catch((error) => {
+            if (isDisposed) {
+              return;
+            }
+
+            setAutoSaveState('error');
+            console.log('Game progress save error:', error);
+          });
+      }, 750);
+    });
+
+    return () => {
+      isDisposed = true;
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      unsubscribe();
+    };
+  }, [currentUser, isGameReady]);
+
+  useEffect(() => {
+    if (currentUser) {
+      return;
+    }
+
+    setAutoSaveState('idle');
+    setLastAutoSavedAt(null);
+  }, [currentUser]);
+
+  const autoSaveLabel = (() => {
+    if (!currentUser) {
+      return '';
+    }
+
+    if (!isGameReady) {
+      return 'Syncer data...';
+    }
+
+    if (autoSaveState === 'pending') {
+      return 'Autosave: Venter';
+    }
+
+    if (autoSaveState === 'saving') {
+      return 'Autosave: Gemmer...';
+    }
+
+    if (autoSaveState === 'error') {
+      return 'Autosave: Fejl';
+    }
+
+    if (autoSaveState === 'saved' && lastAutoSavedAt) {
+      const time = `${String(lastAutoSavedAt.getHours()).padStart(2, '0')}:${String(
+        lastAutoSavedAt.getMinutes(),
+      ).padStart(2, '0')}:${String(lastAutoSavedAt.getSeconds()).padStart(2, '0')}`;
+
+      return `Autosave: Gemt ${time}`;
+    }
+
+    return 'Autosave: Klar';
+  })();
 
   if (!currentUser) {
     return (
       <SafeAreaProvider>
         <StatusBar style="light" />
         <Login onLogin={setCurrentUser} />
+      </SafeAreaProvider>
+    );
+  }
+
+  if (!isGameReady) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.app}>
+          <StatusBar style="light" />
+        </View>
       </SafeAreaProvider>
     );
   }
@@ -94,7 +241,12 @@ export default function App() {
         <StatusBar style="light" />
 
         <View style={styles.content}>{content}</View>
-        <BottomNavigation route={route} onRouteChange={setRoute} />
+        <BottomNavigation
+          route={route}
+          onRouteChange={setRoute}
+          autoSaveText={autoSaveLabel}
+          autoSaveTone={autoSaveState === 'error' ? 'error' : 'normal'}
+        />
       </View>
     </SafeAreaProvider>
   );
@@ -107,6 +259,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingBottom: 84,
+    paddingBottom: 108,
   },
 });

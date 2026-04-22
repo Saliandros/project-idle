@@ -187,6 +187,21 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 								)}
 							</View>
 
+							{activeInvoiceRows.length >= 2 ? (
+								<View style={styles.invoiceTotalRow}>
+									<Text style={styles.invoiceTotalLabel}>Invoice Total</Text>
+									<View style={styles.invoiceTotalValueWrap}>
+										<Image
+											source={resourceIcons.gold!}
+											style={styles.invoiceTotalIcon}
+										/>
+										<Text style={styles.invoiceTotalValue}>
+											{formatDisplayNumber(totalGoldValue)}
+										</Text>
+									</View>
+								</View>
+							) : null}
+
 							<View style={styles.actionArea}>
 								<View style={styles.tradeLine}>
 									<Text style={styles.tradeLineLabel}>{selectedResource.label}</Text>
@@ -413,6 +428,35 @@ const styles = StyleSheet.create({
 		fontSize: isWeb ? 20 : 18,
 		color: '#FFFFFF',
 		fontWeight: '600',
+	},
+	invoiceTotalRow: {
+		marginTop: 10,
+		paddingTop: 10,
+		paddingBottom: 4,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		borderTopWidth: 1,
+		borderTopColor: 'rgba(255, 255, 255, 0.18)',
+	},
+	invoiceTotalLabel: {
+		fontSize: isWeb ? 18 : 16,
+		fontWeight: '700',
+		color: '#E9D7AC',
+	},
+	invoiceTotalValueWrap: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 10,
+	},
+	invoiceTotalIcon: {
+		width: 28,
+		height: 28,
+	},
+	invoiceTotalValue: {
+		fontSize: isWeb ? 22 : 20,
+		fontWeight: '800',
+		color: '#FFFFFF',
 	},
 	actionArea: {
 		flex: 1,

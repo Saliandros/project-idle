@@ -6,6 +6,8 @@ import { embassyUnlockOrder } from '../data/embassy';
 import { factionDefinitions } from '../data/factions';
 import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
+import { formatDisplayNumber } from '../utils/formatNumber';
+import { fromRawResourceAmount } from '../utils/resources';
 
 type FactionsProps = {
 	onNavigate: (route: AppRoute) => void;
@@ -20,8 +22,11 @@ export function Factions({ onNavigate }: FactionsProps) {
 	const [showLockedModal, setShowLockedModal] = useState(false);
 	const [lockedFactionName, setLockedFactionName] = useState('');
 	const activeFactionId = useGameStore((state) => state.activeFactionId);
+	const gold = useGameStore((state) => state.resources.gold);
 	const unlockedFactionIds = useGameStore((state) => state.unlockedFactionIds);
 	const setActiveFaction = useGameStore((state) => state.setActiveFaction);
+	const unlockFaction = useGameStore((state) => state.unlockFaction);
+	const goldAmount = fromRawResourceAmount('gold', gold);
 
 	const unlockRows = useMemo(
 		() =>
@@ -52,6 +57,25 @@ export function Factions({ onNavigate }: FactionsProps) {
 		setShowLockedModal(true);
 	};
 
+	const handleUnlockPress = (factionId: typeof factionDefinitions[number]['id']) => {
+		const faction = factionDefinitions.find((entry) => entry.id === factionId);
+
+		if (!faction) {
+			return;
+		}
+
+		if (unlockedFactionIds.includes(factionId)) {
+			return;
+		}
+
+		const didUnlock = unlockFaction(factionId);
+
+		if (!didUnlock) {
+			setLockedFactionName(faction.lockedName);
+			setShowLockedModal(true);
+		}
+	};
+
 	return (
 		<ImageBackground
 			source={require('../../assets/images/Factions/Lizardman/Shattered Isles Map.png')}
@@ -61,6 +85,13 @@ export function Factions({ onNavigate }: FactionsProps) {
 		>
 			<View style={styles.overlay}>
 				<Text style={styles.title}>Factions</Text>
+				<View style={styles.goldBar}>
+					<Image
+						source={require('../../assets/images/General/coin.png')}
+						style={styles.goldBarIcon}
+					/>
+					<Text style={styles.goldBarText}>{formatDisplayNumber(goldAmount)}</Text>
+				</View>
 
 				<View style={styles.tabRow}>
 					<TouchableOpacity
@@ -118,7 +149,7 @@ export function Factions({ onNavigate }: FactionsProps) {
 									key={faction.id}
 									style={[styles.unlockRow, isUnlocked ? styles.unlockRowUnlocked : styles.unlockRowLocked]}
 									activeOpacity={0.8}
-									onPress={isUnlocked ? undefined : () => handleFactionPress(faction.id)}
+									onPress={isUnlocked ? undefined : () => handleUnlockPress(faction.id)}
 								>
 									<View>
 										<Text style={[styles.unlockText, isUnlocked && styles.unlockTextUnlocked]}>
@@ -134,7 +165,7 @@ export function Factions({ onNavigate }: FactionsProps) {
 													source={require('../../assets/images/General/coin.png')}
 													style={styles.unlockCoin}
 												/>
-												<Text style={styles.unlockAmount}>1485</Text>
+												<Text style={styles.unlockAmount}>{faction.unlockCostGold}</Text>
 											</>
 										)}
 									</View>
@@ -154,7 +185,9 @@ export function Factions({ onNavigate }: FactionsProps) {
 						<View style={styles.modalContainer}>
 							<Text style={styles.modalTitle}>FACTION LOCKED</Text>
 							<Text style={styles.modalMessage}>{lockedFactionName} are still Locked</Text>
-							<Text style={styles.modalSubtext}>Raise your standing with {lockedFactionName} to be able to purchase "unlock"</Text>
+							<Text style={styles.modalSubtext}>
+								You need more gold to unlock {lockedFactionName}
+							</Text>
 							<TouchableOpacity
 								style={styles.modalButton}
 								onPress={() => setShowLockedModal(false)}
@@ -188,8 +221,25 @@ const styles = StyleSheet.create({
 		fontSize: isWeb ? 32 : 24,
 		fontWeight: '700',
 		color: '#FFFFFF',
-		marginBottom: 20,
+		marginBottom: 12,
 		marginLeft: 20,
+	},
+	goldBar: {
+		marginLeft: 20,
+		marginRight: 20,
+		marginBottom: 14,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+	},
+	goldBarIcon: {
+		width: 22,
+		height: 22,
+	},
+	goldBarText: {
+		fontSize: isWeb ? 18 : 16,
+		fontWeight: '700',
+		color: '#FFFFFF',
 	},
 	tabRow: {
 		flexDirection: 'row',

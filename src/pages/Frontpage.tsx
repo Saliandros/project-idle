@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { AppRoute } from '../constants/routes';
+import { embassyUnlockOrder } from '../data/embassy';
 import { factionDefinitions } from '../data/factions';
 import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
@@ -24,12 +25,15 @@ type FrontpageProps = {
     currentUser: TestUser;
 };
 
+type DesktopFactionTab = 'champions' | 'unlocks';
+
 const isWeb = Platform.OS === 'web';
 
 export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
     const [scale, setScale] = useState(1);
     const [showLockedModal, setShowLockedModal] = useState(false);
     const [showFactionPicker, setShowFactionPicker] = useState(false);
+    const [desktopFactionTab, setDesktopFactionTab] = useState<DesktopFactionTab>('champions');
     const [lockedFactionName, setLockedFactionName] = useState('');
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === 'web' && width >= 1024;
@@ -38,11 +42,15 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
     const activeFactionId = useGameStore((state) => state.activeFactionId);
     const unlockedFactionIds = useGameStore((state) => state.unlockedFactionIds);
     const setActiveFaction = useGameStore((state) => state.setActiveFaction);
+    const unlockFaction = useGameStore((state) => state.unlockFaction);
     const activeFaction = factionDefinitions.find((entry) => entry.id === activeFactionId) ?? factionDefinitions[0];
     const primaryResourceAmount = useGameStore((state) =>
         fromRawResourceAmount(activeFaction.clickResourceId, state.resources[activeFaction.clickResourceId])
     );
     const goldAmount = fromRawResourceAmount('gold', gold);
+    const desktopUnlockRows = embassyUnlockOrder
+        .map((factionId) => factionDefinitions.find((entry) => entry.id === factionId))
+        .filter((entry): entry is (typeof factionDefinitions)[number] => Boolean(entry));
 
     const handleClick = () => {
         performClick();
@@ -62,6 +70,19 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
 
         setLockedFactionName(entry.lockedName);
         setShowLockedModal(true);
+    };
+
+    const handleUnlockPress = (entry: typeof factionDefinitions[number]) => {
+        if (unlockedFactionIds.includes(entry.id)) {
+            return;
+        }
+
+        const didUnlock = unlockFaction(entry.id);
+
+        if (!didUnlock) {
+            setLockedFactionName(entry.lockedName);
+            setShowLockedModal(true);
+        }
     };
 
     return (
@@ -122,29 +143,99 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
 
                     {isDesktopWeb ? (
                         <View style={styles.sidePanel}>
-                            <Text style={styles.sidePanelTitle}>Factions</Text>
+                            <View style={styles.sidePanelHeader}>
+                                <Text style={styles.sidePanelTitle}>Factions</Text>
+                                <View style={styles.sidePanelGoldWrap}>
+                                    <Image
+                                        source={require('../../assets/images/General/coin.png')}
+                                        style={styles.sidePanelGoldIcon}
+                                    />
+                                    <Text style={styles.sidePanelGoldText}>{formatDisplayNumber(goldAmount)}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.sidePanelTabs}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sidePanelTabButton,
+                                        desktopFactionTab === 'champions' && styles.sidePanelTabButtonActive,
+                                    ]}
+                                    activeOpacity={0.85}
+                                    onPress={() => setDesktopFactionTab('champions')}
+                                >
+                                    <Text style={styles.sidePanelTabButtonText}>Champions</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sidePanelTabButton,
+                                        desktopFactionTab === 'unlocks' && styles.sidePanelTabButtonActive,
+                                    ]}
+                                    activeOpacity={0.85}
+                                    onPress={() => setDesktopFactionTab('unlocks')}
+                                >
+                                    <Text style={styles.sidePanelTabButtonText}>Unlocks</Text>
+                                </TouchableOpacity>
+                            </View>
 
                             <View style={styles.sidePanelList}>
-                                {factionDefinitions.map((entry) => (
-                                    <TouchableOpacity
-                                        key={entry.label}
-                                        style={[
-                                            styles.sidePanelRow,
-                                            unlockedFactionIds.includes(entry.id) ? styles.sidePanelRowActive : styles.sidePanelRowLocked,
-                                            activeFactionId === entry.id && styles.sidePanelRowCurrent,
-                                        ]}
-                                        activeOpacity={0.85}
-                                        onPress={() => handleFactionPress(entry)}
-                                    >
-                                        <View style={styles.sidePanelRowContent}>
-                                            <Text style={styles.sidePanelRowTitle}>{entry.label}</Text>
-                                            <Text style={styles.sidePanelRowMeta}>
-                                                {activeFactionId === entry.id ? 'Current' : unlockedFactionIds.includes(entry.id) ? 'Active' : 'Locked'}
-                                            </Text>
-                                        </View>
-                                        <Text style={styles.sidePanelRowArrow}>{'>'}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                                {desktopFactionTab === 'champions'
+                                    ? factionDefinitions.map((entry) => (
+                                        <TouchableOpacity
+                                            key={entry.label}
+                                            style={[
+                                                styles.sidePanelRow,
+                                                unlockedFactionIds.includes(entry.id) ? styles.sidePanelRowActive : styles.sidePanelRowLocked,
+                                                activeFactionId === entry.id && styles.sidePanelRowCurrent,
+                                            ]}
+                                            activeOpacity={0.85}
+                                            onPress={() => handleFactionPress(entry)}
+                                        >
+                                            <View style={styles.sidePanelRowContent}>
+                                                <Text style={styles.sidePanelRowTitle}>{entry.label}</Text>
+                                                <Text style={styles.sidePanelRowMeta}>
+                                                    {activeFactionId === entry.id ? 'Current' : unlockedFactionIds.includes(entry.id) ? 'Active' : 'Locked'}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.sidePanelRowArrow}>{'>'}</Text>
+                                        </TouchableOpacity>
+                                    ))
+                                    : desktopUnlockRows
+                                        .sort((a, b) => Number(unlockedFactionIds.includes(a.id)) - Number(unlockedFactionIds.includes(b.id)))
+                                        .map((entry) => {
+                                            const isUnlocked = unlockedFactionIds.includes(entry.id);
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={entry.id}
+                                                    style={[
+                                                        styles.sidePanelRow,
+                                                        isUnlocked ? styles.sidePanelRowActive : styles.sidePanelRowLocked,
+                                                    ]}
+                                                    activeOpacity={0.85}
+                                                    onPress={isUnlocked ? undefined : () => handleUnlockPress(entry)}
+                                                >
+                                                    <View style={styles.sidePanelRowContent}>
+                                                        <Text style={styles.sidePanelRowTitle}>{entry.label}</Text>
+                                                        {isUnlocked ? (
+                                                            <Text style={styles.sidePanelRowMeta}>Unlocked</Text>
+                                                        ) : (
+                                                            <View style={styles.sidePanelUnlockCost}>
+                                                                <Image
+                                                                    source={require('../../assets/images/General/coin.png')}
+                                                                    style={styles.sidePanelUnlockCostIcon}
+                                                                />
+                                                                <Text style={styles.sidePanelRowMeta}>
+                                                                    {entry.unlockCostGold}
+                                                                </Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                    <Text style={styles.sidePanelRowArrow}>
+                                                        {isUnlocked ? 'OK' : '>'}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
                             </View>
                         </View>
                     ) : null}
@@ -355,12 +446,53 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.24,
         shadowRadius: 24,
     },
+    sidePanelHeader: {
+        paddingHorizontal: 22,
+        marginBottom: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
     sidePanelTitle: {
         color: '#FFFFFF',
         fontSize: 28,
         fontWeight: '800',
-        marginBottom: 18,
-        paddingHorizontal: 22,
+    },
+    sidePanelGoldWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    sidePanelGoldIcon: {
+        width: 18,
+        height: 18,
+    },
+    sidePanelGoldText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    sidePanelTabs: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 10,
+        marginBottom: 10,
+    },
+    sidePanelTabButton: {
+        flex: 1,
+        minHeight: 46,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    sidePanelTabButtonActive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    sidePanelTabButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
     sidePanelList: {
         gap: 0,
@@ -386,6 +518,15 @@ const styles = StyleSheet.create({
     },
     sidePanelRowContent: {
         gap: 6,
+    },
+    sidePanelUnlockCost: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    sidePanelUnlockCostIcon: {
+        width: 14,
+        height: 14,
     },
     sidePanelRowTitle: {
         color: '#FFFFFF',

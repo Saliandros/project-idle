@@ -16,6 +16,8 @@ import { embassyResourceOptions } from '../data/embassy';
 import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
 import { ResourceId } from '../types/game';
+import { formatDisplayNumber } from '../utils/formatNumber';
+import { fromRawResourceAmount } from '../utils/resources';
 
 type EmbassyExchangeProps = {
 	onNavigate: (route: AppRoute) => void;
@@ -44,7 +46,9 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 		0,
 		Number.parseInt(tradeDrafts[selectedResource.id] ?? '', 10) || 0,
 	);
-	const selectedResourceOwnedAmount = resources[selectedResource.id];
+	const selectedResourceOwnedAmount = Math.floor(
+		fromRawResourceAmount(selectedResource.id, resources[selectedResource.id]),
+	);
 
 	const invoiceRows = useMemo(
 		() =>
@@ -87,7 +91,7 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 	};
 
 	const handleTradeDraftChange = (resourceId: ResourceId, value: string) => {
-		const ownedAmount = resources[resourceId];
+		const ownedAmount = Math.floor(fromRawResourceAmount(resourceId, resources[resourceId]));
 		const parsedValue = Math.max(0, Number.parseInt(value, 10) || 0);
 		const clampedValue = Math.min(parsedValue, ownedAmount);
 
@@ -159,7 +163,7 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 														style={styles.resourceIcon}
 													/>
 													<Text style={styles.resourceValue}>
-														{row.amount} {row.label}
+														{formatDisplayNumber(row.amount)} {row.label}
 													</Text>
 												</View>
 											))}
@@ -170,7 +174,9 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 													source={resourceIcons.gold!}
 													style={styles.resourceIcon}
 												/>
-												<Text style={styles.resourceValue}>{totalGoldValue}</Text>
+												<Text style={styles.resourceValue}>
+													{formatDisplayNumber(totalGoldValue)}
+												</Text>
 											</View>
 										</View>
 									</>
@@ -186,9 +192,11 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 									<Text style={styles.tradeLineLabel}>{selectedResource.label}</Text>
 									<View style={styles.tradeSliderBlock}>
 										<View style={styles.tradeSliderHeader}>
-											<Text style={styles.tradeSliderValue}>{selectedTradeAmount}</Text>
+											<Text style={styles.tradeSliderValue}>
+												{formatDisplayNumber(selectedTradeAmount)}
+											</Text>
 											<Text style={styles.tradeSliderHint}>
-												Owned: {selectedResourceOwnedAmount}{'\n'}
+												Owned: {formatDisplayNumber(selectedResourceOwnedAmount)}{'\n'}
 												1 gold per {selectedResource.exchangeAmount} {selectedResource.label.toLowerCase()}
 											</Text>
 										</View>

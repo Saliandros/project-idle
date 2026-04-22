@@ -11,11 +11,13 @@ import { EmbassyExchange } from './src/pages/EmbassyExchange';
 import { Factions } from './src/pages/Factions';
 import { Frontpage } from './src/pages/Frontpage';
 import { Login } from './src/pages/Login';
+import { useGameStore } from './src/store/useGameStore';
 import { TestUser } from './src/types';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
+  const applyIdleTick = useGameStore((state) => state.applyIdleTick);
 
   useEffect(() => {
     // Skjul Android navigation bar
@@ -45,9 +47,21 @@ export default function App() {
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+
     return () => subscription?.remove();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      applyIdleTick(1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [applyIdleTick, currentUser]);
 
   if (!currentUser) {
     return (

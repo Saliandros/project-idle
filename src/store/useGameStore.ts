@@ -1,15 +1,36 @@
 import { create } from 'zustand';
 
+import { championDefinitions } from '../data/champions';
 import { embassyResourceOptions } from '../data/embassy';
 import { factionDefinitions } from '../data/factions';
 import { GameState, ResourceId } from '../types/game';
+import { toRawResourceAmount } from '../utils/resources';
 
 type GameStore = GameState & {
+  applyIdleTick: (seconds: number) => void;
   exchangeResource: (resourceId: ResourceId, amount: number) => boolean;
   performClick: () => void;
+  upgradeChampion: (championId: string) => boolean;
   setActiveFaction: (factionId: GameState['activeFactionId']) => void;
   setResource: (resourceId: ResourceId, value: number) => void;
 };
+
+const CHAMPION_COST_MULTIPLIER = 1.5;
+
+function getChampionProductionPerSecond(championId: string, level: number) {
+  const champion = championDefinitions.find((entry) => entry.id === championId);
+
+  if (!champion || level <= 0) {
+    return null;
+  }
+
+  return {
+    resourceId: champion.productionResourceId,
+    amountPerSecond:
+      champion.baseProductionPerSecond +
+      champion.productionScalingPerLevel * (level - 1),
+  };
+}
 
 const initialState: GameState = {
   activeFactionId: 'lizardman',
@@ -28,6 +49,37 @@ const initialState: GameState = {
 
 export const useGameStore = create<GameStore>((set) => ({
   ...initialState,
+  applyIdleTick: (seconds) =>
+    set((state) => {
+      if (seconds <= 0) {
+        return state;
+      }
+
+      const nextResources = { ...state.resources };
+      let hasProduction = false;
+
+      Object.entries(state.championLevels).forEach(([championId, level]) => {
+        const production = getChampionProductionPerSecond(championId, level);
+
+        if (!production) {
+          return;
+        }
+
+        hasProduction = true;
+        nextResources[production.resourceId] += toRawResourceAmount(
+          production.resourceId,
+          production.amountPerSecond * seconds,
+        );
+      });
+
+      if (!hasProduction) {
+        return state;
+      }
+
+      return {
+        resources: nextResources,
+      };
+    }),
   exchangeResource: (resourceId, amount) => {
     let didExchange = false;
 
@@ -35,7 +87,9 @@ export const useGameStore = create<GameStore>((set) => ({
       const option = embassyResourceOptions.find((entry) => entry.id === resourceId);
       const safeAmount = Math.max(0, Math.floor(amount));
       const exchangeCount = option ? Math.floor(safeAmount / option.exchangeAmount) : 0;
-      const resourceCost = option ? exchangeCount * option.exchangeAmount : 0;
+      const resourceCost = option
+        ? toRawResourceAmount(resourceId, exchangeCount * option.exchangeAmount)
+        : 0;
 
       if (
         !option ||
@@ -52,7 +106,8 @@ export const useGameStore = create<GameStore>((set) => ({
         resources: {
           ...state.resources,
           [resourceId]: state.resources[resourceId] - resourceCost,
-          gold: state.resources.gold + exchangeCount * option.goldYield,
+          gold:
+            state.resources.gold + toRawResourceAmount('gold', exchangeCount * option.goldYield),
         },
       };
     });
@@ -69,10 +124,47 @@ export const useGameStore = create<GameStore>((set) => ({
         resources: {
           ...state.resources,
           [activeFaction.clickResourceId]:
-            state.resources[activeFaction.clickResourceId] + activeFaction.clickValue,
+            state.resources[activeFaction.clickResourceId] +
+            toRawResourceAmount(activeFaction.clickResourceId, activeFaction.clickValue),
         },
       };
     }),
+  upgradeChampion: (championId) => {
+    let didUpgrade = false;
+
+    set((state) => {
+      const champion = championDefinitions.find((entry) => entry.id === championId);
+
+      if (!champion) {
+        return state;
+      }
+
+      const currentLevel = state.championLevels[championId] ?? 0;
+      const nextCost = Math.round(
+        champion.baseCost * Math.pow(CHAMPION_COST_MULTIPLIER, currentLevel),
+      );
+      const nextCostRaw = toRawResourceAmount(champion.costResourceId, nextCost);
+
+      if (state.resources[champion.costResourceId] < nextCostRaw) {
+        return state;
+      }
+
+      didUpgrade = true;
+
+      return {
+        championLevels: {
+          ...state.championLevels,
+          [championId]: currentLevel + 1,
+        },
+        resources: {
+          ...state.resources,
+          [champion.costResourceId]: state.resources[champion.costResourceId] - nextCostRaw,
+        },
+      };
+    });
+
+    return didUpgrade;
+  },
   setActiveFaction: (factionId) =>
     set(() => ({
       activeFactionId: factionId,
@@ -81,7 +173,7 @@ export const useGameStore = create<GameStore>((set) => ({
     set((state) => ({
       resources: {
         ...state.resources,
-        [resourceId]: value,
+        [resourceId]: toRawResourceAmount(resourceId, value),
       },
     })),
 }));

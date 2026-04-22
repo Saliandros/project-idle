@@ -6,7 +6,10 @@ export const championDefinitions: ChampionDefinition[] = [
     factionId: 'lizardman',
     name: 'Saliandros',
     costResourceId: 'meat',
-    costAmount: 25,
+    baseCost: 25,
+    productionResourceId: 'meat',
+    baseProductionPerSecond: 0.1,
+    productionScalingPerLevel: 0.1,
     previewImage: require('../../assets/images/Factions/Lizardman/Saliandros.png'),
   },
   {
@@ -14,6 +17,9 @@ export const championDefinitions: ChampionDefinition[] = [
     factionId: 'lizardman',
     name: 'Kroxigar',
     costResourceId: 'meat',
-    costAmount: 500,
+    baseCost: 500,
+    productionResourceId: 'meat',
+    baseProductionPerSecond: 1,
+    productionScalingPerLevel: 0.1,
   },
 ];

@@ -27,7 +27,10 @@ export type ChampionDefinition = {
   factionId: FactionId;
   name: string;
   costResourceId: ResourceId;
-  costAmount: number;
+  baseCost: number;
+  productionResourceId: ResourceId;
+  baseProductionPerSecond: number;
+  productionScalingPerLevel: number;
   previewImage?: number;
 };
 

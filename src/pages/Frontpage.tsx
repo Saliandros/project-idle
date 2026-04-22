@@ -16,6 +16,8 @@ import { factionDefinitions } from '../data/factions';
 import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
 import { TestUser } from '../types';
+import { formatDisplayNumber } from '../utils/formatNumber';
+import { fromRawResourceAmount } from '../utils/resources';
 
 type FrontpageProps = {
     onNavigate: (route: AppRoute) => void;
@@ -37,7 +39,10 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
     const unlockedFactionIds = useGameStore((state) => state.unlockedFactionIds);
     const setActiveFaction = useGameStore((state) => state.setActiveFaction);
     const activeFaction = factionDefinitions.find((entry) => entry.id === activeFactionId) ?? factionDefinitions[0];
-    const primaryResourceAmount = useGameStore((state) => state.resources[activeFaction.clickResourceId]);
+    const primaryResourceAmount = useGameStore((state) =>
+        fromRawResourceAmount(activeFaction.clickResourceId, state.resources[activeFaction.clickResourceId])
+    );
+    const goldAmount = fromRawResourceAmount('gold', gold);
 
     const handleClick = () => {
         performClick();
@@ -83,14 +88,16 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
                             </TouchableOpacity>
                             <View style={styles.resourceSection}>
                                 <View style={styles.resourceItem}>
-                                    <Text style={styles.resourceValue}>{primaryResourceAmount}</Text>
+                                    <Text style={styles.resourceValue}>
+                                        {Math.floor(primaryResourceAmount)}
+                                    </Text>
                                     <Image
                                         source={require('../../assets/images/Factions/Lizardman/Lizardman clicker icon.png')}
                                         style={styles.resourceIcon}
                                     />
                                 </View>
                                 <View style={styles.resourceItem}>
-                                    <Text style={styles.resourceValue}>{gold}</Text>
+                                    <Text style={styles.resourceValue}>{formatDisplayNumber(goldAmount)}</Text>
                                     <Image
                                         source={require('../../assets/images/General/coin.png')}
                                         style={styles.resourceIcon}

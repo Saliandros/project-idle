@@ -116,10 +116,10 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 			<View style={styles.overlay}>
 				<Text style={styles.title}>Embassy Exchange</Text>
 
-				<View style={styles.mainContent}>
+				<View style={[styles.mainContent, isWeb && styles.mainContentWeb]}>
 					<ImageBackground
 						source={require('../../assets/images/Backgrounds/TradeBG.png')}
-						style={styles.exchangePanel}
+						style={[styles.exchangePanel, isWeb && styles.exchangePanelWeb]}
 						imageStyle={styles.exchangePanelImage}
 						resizeMode="cover"
 					>
@@ -281,9 +281,16 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingBottom: 8,
 	},
+	mainContentWeb: {
+		paddingHorizontal: 0,
+		paddingBottom: 0,
+	},
 	exchangePanel: {
 		flex: 1,
 		overflow: 'hidden',
+	},
+	exchangePanelWeb: {
+		width: '100%',
 	},
 	exchangePanelImage: {
 		opacity: 0.95,

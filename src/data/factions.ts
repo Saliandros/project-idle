@@ -12,10 +12,10 @@ export const factionDefinitions: FactionDefinition[] = [
   },
   {
     id: 'human',
-    label: 'Humans',
+    label: 'Humen',
     clickResourceId: 'clicks',
     clickValue: 1,
-    lockedName: 'The Humans',
+    lockedName: 'The Humen',
     route: null,
   },
   {

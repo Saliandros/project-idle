@@ -9,7 +9,7 @@ export const factionDefinitions: FactionDefinition[] = [
     clickValue: 1,
     lockedName: 'The Lizardmen',
     unlockCostGold: 0,
-    route: AppRoute.Champions,
+    route: AppRoute.Stronghold,
   },
   {
     id: 'human',

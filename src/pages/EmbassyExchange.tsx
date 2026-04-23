@@ -372,11 +372,15 @@ const styles = StyleSheet.create({
     borderLeftColor: "#FFF6DC",
     borderRightColor: "#6B5231",
     borderBottomColor: "#6B5231",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 2,
-    elevation: 3,
+    ...(isWeb
+      ? { boxShadow: "0 2px 2px rgba(0, 0, 0, 0.35)" }
+      : {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.35,
+          shadowRadius: 2,
+          elevation: 3,
+        }),
   },
   selectorText: {
     fontSize: isWeb ? 21 : 19,
@@ -400,11 +404,15 @@ const styles = StyleSheet.create({
     zIndex: 10,
     borderWidth: 2,
     borderColor: "#5C4427",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
-    elevation: 4,
+    ...(isWeb
+      ? { boxShadow: "0 3px 3px rgba(0, 0, 0, 0.4)" }
+      : {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.4,
+          shadowRadius: 3,
+          elevation: 4,
+        }),
   },
   dropdownOption: {
     paddingVertical: 11,
@@ -541,11 +549,15 @@ const styles = StyleSheet.create({
     borderLeftColor: "#FFF2C6",
     borderRightColor: "#71542F",
     borderBottomColor: "#71542F",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.45,
-    shadowRadius: 2,
-    elevation: 5,
+    ...(isWeb
+      ? { boxShadow: "0 3px 2px rgba(0, 0, 0, 0.45)" }
+      : {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.45,
+          shadowRadius: 2,
+          elevation: 5,
+        }),
   },
   acceptButtonText: {
     fontSize: isWeb ? 21 : 19,
@@ -553,9 +565,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    textShadowColor: "rgba(255, 255, 255, 0.35)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    ...(isWeb
+      ? { textShadow: "0 1px 1px rgba(255, 255, 255, 0.35)" }
+      : {
+          textShadowColor: "rgba(255, 255, 255, 0.35)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 1,
+        }),
   },
   modalOverlay: {
     flex: 1,
@@ -571,11 +587,15 @@ const styles = StyleSheet.create({
     padding: 30,
     margin: 20,
     alignItems: "center",
-    shadowColor: "#FF0000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 15,
+    ...(isWeb
+      ? { boxShadow: "0 0 10px rgba(255, 0, 0, 0.5)" }
+      : {
+          shadowColor: "#FF0000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
+          elevation: 15,
+        }),
   },
   modalTitle: {
     fontSize: 24,
@@ -583,9 +603,13 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
     textAlign: "center",
     marginBottom: 15,
-    textShadowColor: "#000000",
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 3,
+    ...(isWeb
+      ? { textShadow: "2px 2px 3px #000000" }
+      : {
+          textShadowColor: "#000000",
+          textShadowOffset: { width: 2, height: 2 },
+          textShadowRadius: 3,
+        }),
   },
   modalMessage: {
     fontSize: 18,

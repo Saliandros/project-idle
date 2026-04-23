@@ -13,15 +13,16 @@ import { championDefinitions } from "../data/champions";
 import { factionDefinitions } from "../data/factions";
 import { useGameStore } from "../store/useGameStore";
 import { theme } from "../theme/theme";
+import { formatDisplayNumber } from "../utils/formatNumber";
 import { toRawResourceAmount } from "../utils/resources";
 
-type ChampionsProps = {
+type StrongholdProps = {
   onNavigate: (route: AppRoute) => void;
 };
 
 const isWeb = Platform.OS === "web";
 
-export function Champions({ onNavigate: _onNavigate }: ChampionsProps) {
+export function Stronghold({ onNavigate: _onNavigate }: StrongholdProps) {
   const activeFactionId = useGameStore((state) => state.activeFactionId);
   const championLevels = useGameStore((state) => state.championLevels);
   const resources = useGameStore((state) => state.resources);
@@ -41,13 +42,18 @@ export function Champions({ onNavigate: _onNavigate }: ChampionsProps) {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <Text style={styles.title}>Factions</Text>
+        <Text style={styles.title}>Stronghold</Text>
         <View style={styles.divider} />
         <Text style={styles.factionName}>{activeFaction.label}</Text>
 
         <View style={styles.list}>
           {visibleChampions.map((champion) => {
             const currentLevel = championLevels[champion.id] ?? 0;
+            const productionPerSecond =
+              currentLevel <= 0
+                ? 0
+                : champion.baseProductionPerSecond +
+                  champion.productionScalingPerLevel * (currentLevel - 1);
             const nextCost = Math.round(
               champion.baseCost * Math.pow(1.5, currentLevel),
             );
@@ -67,12 +73,20 @@ export function Champions({ onNavigate: _onNavigate }: ChampionsProps) {
                     >
                       <View style={styles.previewOverlay}>
                         <Text style={styles.championName}>{champion.name}</Text>
-                        <View style={styles.priceRow}>
-                          <Image
-                            source={require("../../assets/images/General/meat.png")}
-                            style={styles.meatIcon}
-                          />
-                          <Text style={styles.championPrice}>{nextCost}</Text>
+                        <View style={styles.statStack}>
+                          <View style={styles.statRow}>
+                            <Text style={styles.statLabel}>Idle</Text>
+                            <Text style={styles.statValue}>
+                              {formatDisplayNumber(productionPerSecond)}/sec
+                            </Text>
+                          </View>
+                          <View style={styles.priceRow}>
+                            <Image
+                              source={require("../../assets/images/General/meat.png")}
+                              style={styles.meatIcon}
+                            />
+                            <Text style={styles.championPrice}>{nextCost}</Text>
+                          </View>
                         </View>
                       </View>
                     </ImageBackground>
@@ -80,12 +94,20 @@ export function Champions({ onNavigate: _onNavigate }: ChampionsProps) {
                     <View style={styles.championPreviewEmpty}>
                       <View style={styles.previewOverlay}>
                         <Text style={styles.championName}>{champion.name}</Text>
-                        <View style={styles.priceRow}>
-                          <Image
-                            source={require("../../assets/images/General/meat.png")}
-                            style={styles.meatIcon}
-                          />
-                          <Text style={styles.championPrice}>{nextCost}</Text>
+                        <View style={styles.statStack}>
+                          <View style={styles.statRow}>
+                            <Text style={styles.statLabel}>Idle</Text>
+                            <Text style={styles.statValue}>
+                              {formatDisplayNumber(productionPerSecond)}/sec
+                            </Text>
+                          </View>
+                          <View style={styles.priceRow}>
+                            <Image
+                              source={require("../../assets/images/General/meat.png")}
+                              style={styles.meatIcon}
+                            />
+                            <Text style={styles.championPrice}>{nextCost}</Text>
+                          </View>
                         </View>
                       </View>
                     </View>
@@ -191,6 +213,32 @@ const styles = StyleSheet.create({
     fontSize: isWeb ? 14 : 13,
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  statStack: {
+    gap: 6,
+  },
+  statRow: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(233, 215, 172, 0.28)",
+  },
+  statLabel: {
+    color: "rgba(233, 215, 172, 0.78)",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+  },
+  statValue: {
+    color: "#FFFFFF",
+    fontSize: isWeb ? 13 : 12,
+    fontWeight: "800",
   },
   priceRow: {
     flexDirection: "row",

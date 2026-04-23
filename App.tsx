@@ -1,272 +1,29 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, AppState } from 'react-native';
-import * as NavigationBar from 'expo-navigation-bar';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { AppRoute } from './src/constants/routes';
-import { Champions } from './src/pages/Champions';
+import { useAndroidNavigationBar } from './src/hooks/useAndroidNavigationBar';
+import { useGameProgressAutosave } from './src/hooks/useGameProgressAutosave';
+import { useGameProgressHydration } from './src/hooks/useGameProgressHydration';
+import { useIdleProduction } from './src/hooks/useIdleProduction';
 import { EmbassyExchange } from './src/pages/EmbassyExchange';
 import { Factions } from './src/pages/Factions';
 import { Frontpage } from './src/pages/Frontpage';
 import { Login } from './src/pages/Login';
-import { loadGameProgress, saveGameProgress } from './src/services/gameProgress';
-import { useGameStore } from './src/store/useGameStore';
+import { Stronghold } from './src/pages/Stronghold';
 import { TestUser } from './src/types';
-
-const AUTO_SAVE_INTERVAL_MS = 15000;
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
-  const [isGameReady, setIsGameReady] = useState(false);
   const [route, setRoute] = useState<AppRoute>(AppRoute.Home);
-  const [autoSaveState, setAutoSaveState] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle');
-  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
-  const applyIdleTick = useGameStore((state) => state.applyIdleTick);
-  const hydrateGameState = useGameStore((state) => state.hydrateGameState);
-  const resetGameState = useGameStore((state) => state.resetGameState);
-  const currentUserRef = useRef(currentUser);
-  const isGameReadyRef = useRef(isGameReady);
+  const isGameReady = useGameProgressHydration(currentUser);
+  const { autoSaveLabel, autoSaveTone } = useGameProgressAutosave(currentUser, isGameReady);
 
-  useEffect(() => {
-    currentUserRef.current = currentUser;
-  }, [currentUser]);
-
-  useEffect(() => {
-    isGameReadyRef.current = isGameReady;
-  }, [isGameReady]);
-
-  useEffect(() => {
-    // Skjul Android navigation bar
-    const hideNavigationBar = async () => {
-      try {
-        await NavigationBar.setVisibilityAsync('hidden');
-        
-        // Gentag efter kort tid for at være sikker
-        setTimeout(async () => {
-          await NavigationBar.setVisibilityAsync('hidden');
-        }, 500);
-        
-      } catch (error) {
-        console.log('Navigation bar error:', error);
-      }
-    };
-    
-    // Skjul navigation bar ved app start
-    hideNavigationBar();
-
-    // Lyt til app state changes (når skærmen tændes/slukkes)
-    const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'active') {
-        // App kommer tilbage i fokus - skjul navigation bar igen
-        hideNavigationBar();
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => subscription?.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser) {
-      setIsGameReady(false);
-      resetGameState();
-      return;
-    }
-
-    const interval = setInterval(() => {
-      applyIdleTick(1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [applyIdleTick, currentUser, resetGameState]);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    async function hydrateFromDatabase() {
-      if (!currentUser || typeof currentUser.id !== 'string') {
-        return;
-      }
-
-      setIsGameReady(false);
-
-      try {
-        const gameState = await loadGameProgress(currentUser.id);
-
-        if (isCancelled) {
-          return;
-        }
-
-        hydrateGameState(gameState);
-      } catch (error) {
-        console.log('Game progress load error:', error);
-      } finally {
-        if (!isCancelled) {
-          setIsGameReady(true);
-        }
-      }
-    }
-
-    hydrateFromDatabase();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentUser, hydrateGameState]);
-
-  useEffect(() => {
-    if (!currentUser || typeof currentUser.id !== 'string' || !isGameReady) {
-      return;
-    }
-
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    let isDisposed = false;
-    let isSaving = false;
-
-    const clearAutoSaveInterval = () => {
-      if (!intervalId) {
-        return;
-      }
-
-      clearInterval(intervalId);
-      intervalId = null;
-    };
-
-    const runSave = async () => {
-      if (isSaving || isDisposed) {
-        return;
-      }
-
-      isSaving = true;
-      setAutoSaveState('saving');
-
-      const state = useGameStore.getState();
-
-      try {
-        await saveGameProgress(currentUser.id as string, {
-          activeFactionId: state.activeFactionId,
-          championLevels: state.championLevels,
-          resources: state.resources,
-          unlockedFactionIds: state.unlockedFactionIds,
-        });
-
-        if (isDisposed) {
-          return;
-        }
-
-        setLastAutoSavedAt(new Date());
-        setAutoSaveState('saved');
-      } catch (error) {
-        if (isDisposed) {
-          return;
-        }
-
-        setAutoSaveState('error');
-        console.log('Game progress save error:', error);
-      } finally {
-        isSaving = false;
-      }
-    };
-
-    setAutoSaveState('pending');
-    void runSave();
-    intervalId = setInterval(() => {
-      void runSave();
-    }, AUTO_SAVE_INTERVAL_MS);
-
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'inactive' || nextAppState === 'background') {
-        void runSave();
-      }
-    });
-
-    return () => {
-      isDisposed = true;
-      subscription.remove();
-      clearAutoSaveInterval();
-    };
-  }, [currentUser, isGameReady]);
-
-  useEffect(() => {
-    const browserWindow = (globalThis as typeof globalThis & {
-      addEventListener?: (type: string, listener: () => void) => void;
-      removeEventListener?: (type: string, listener: () => void) => void;
-    });
-
-    if (
-      typeof browserWindow.addEventListener !== 'function' ||
-      typeof browserWindow.removeEventListener !== 'function'
-    ) {
-      return;
-    }
-
-    const handleBeforeUnload = () => {
-      const nextUser = currentUserRef.current;
-
-      if (!nextUser || typeof nextUser.id !== 'string' || !isGameReadyRef.current) {
-        return;
-      }
-
-      const state = useGameStore.getState();
-
-      void saveGameProgress(nextUser.id, {
-        activeFactionId: state.activeFactionId,
-        championLevels: state.championLevels,
-        resources: state.resources,
-        unlockedFactionIds: state.unlockedFactionIds,
-      });
-    };
-
-    browserWindow.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      browserWindow.removeEventListener?.('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      return;
-    }
-
-    setAutoSaveState('idle');
-    setLastAutoSavedAt(null);
-  }, [currentUser]);
-
-  const autoSaveLabel = (() => {
-    if (!currentUser) {
-      return '';
-    }
-
-    if (!isGameReady) {
-      return 'Syncer data...';
-    }
-
-    if (autoSaveState === 'pending') {
-      return 'Autosave: Venter';
-    }
-
-    if (autoSaveState === 'saving') {
-      return 'Autosave: Gemmer...';
-    }
-
-    if (autoSaveState === 'error') {
-      return 'Autosave: Fejl';
-    }
-
-    if (autoSaveState === 'saved' && lastAutoSavedAt) {
-      const time = `${String(lastAutoSavedAt.getHours()).padStart(2, '0')}:${String(
-        lastAutoSavedAt.getMinutes(),
-      ).padStart(2, '0')}:${String(lastAutoSavedAt.getSeconds()).padStart(2, '0')}`;
-
-      return `Autosave: Gemt ${time}`;
-    }
-
-    return 'Autosave: Klar';
-  })();
+  useAndroidNavigationBar();
+  useIdleProduction(currentUser);
 
   if (!currentUser) {
     return (
@@ -292,12 +49,12 @@ export default function App() {
       return <Factions onNavigate={setRoute} />;
     }
 
-    if (route === AppRoute.Embassy_Exchange) {
+    if (route === AppRoute.EmbassyExchange) {
       return <EmbassyExchange onNavigate={setRoute} />;
     }
 
-    if (route === AppRoute.Champions) {
-      return <Champions onNavigate={setRoute} />;
+    if (route === AppRoute.Stronghold) {
+      return <Stronghold onNavigate={setRoute} />;
     }
 
     return <Frontpage onNavigate={setRoute} currentUser={currentUser} />;
@@ -313,7 +70,7 @@ export default function App() {
           route={route}
           onRouteChange={setRoute}
           autoSaveText={autoSaveLabel}
-          autoSaveTone={autoSaveState === 'error' ? 'error' : 'normal'}
+          autoSaveTone={autoSaveTone}
         />
       </View>
     </SafeAreaProvider>

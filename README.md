@@ -1,79 +1,68 @@
 # project-idle
 
-Minimal React Native app sat op med Expo og TypeScript.
+Minimal React Native app built with Expo and TypeScript.
 
-## Kom i gang
+## Getting Started
 
-1. Installer dependencies:
+Install dependencies:
 
-	```bash
-	npm install
-	```
+```bash
+npm install
+```
 
-2. Start udviklingsserveren:
+Start the Expo development server:
 
-	```bash
-	npm run start
-	```
+```bash
+npm run dev
+```
 
-3. Kommandoen åbner Android og web samtidig, så du kan arbejde cross-platform fra samme dev session.
+Other available scripts:
 
-4. Hvis du kun vil starte Expo uden at åbne targets automatisk, brug:
+```bash
+npm run android
+npm run web
+```
 
-	```bash
-	npm run start:mobile
-	```
+## Project Structure
 
-## Struktur
+- `App.tsx`: App entry, root layout, and simple route state.
+- `assets/`: Fonts, images, sound effects, and other static assets.
+- `schema/`: SQL schema, policies, and seed scripts for Supabase setup.
+- `src/components/`: Reusable UI components.
+- `src/constants/`: Shared constants such as route names.
+- `src/data/`: Static game definitions for factions, champions, and embassy options.
+- `src/hooks/`: Shared lifecycle and game-behavior hooks.
+- `src/pages/`: Screen-level components.
+- `src/services/`: Supabase client, auth, and game-progress persistence.
+- `src/store/`: Zustand game state.
+- `src/theme/`: Shared design tokens.
+- `src/types/`: Shared TypeScript types.
+- `src/utils/`: Formatting and resource conversion helpers.
 
-- `App.tsx`: App entry og root composition
-- `assets/fonts/`: Fonte
-- `assets/icons/`: Ikoner
-- `assets/images/`: Billeder
-- `src/components/`: Genbrugelige UI-komponenter
-- `src/constants/`: Routes, config og faste værdier
-- `src/hooks/`: Custom hooks
-- `src/navigation/`: App navigation og flowstyring
-- `src/pages/`: Sider/screens
-- `src/services/`: API- og datalag
-- `src/theme/`: Design tokens og farver
-- `src/types/`: Delte typer
-- `src/utils/`: Små hjælpefunktioner
-- `tsconfig.json`: TypeScript-konfiguration
-- `app.json`: Expo-konfiguration
+## Game State
 
-## Startstruktur
+The global game state lives in `src/store/useGameStore.ts`. It tracks active faction, unlocked factions, champion levels, and resources such as gold, iron, meat, and clicks.
 
-- `src/navigation/AppNavigator.tsx`: Simpel app-flow/base for screens
-- `src/constants/routes.ts`: Delte route-navne
-- `src/pages/HomePage.tsx`: Landing screen
-- `src/pages/DetailsPage.tsx`: Placeholder details screen
-- `src/pages/SettingsPage.tsx`: Placeholder settings screen
+Screens such as `Frontpage`, `Factions`, `Stronghold`, and `EmbassyExchange` read from the store and call store actions like `performClick`, `upgradeChampion`, `unlockFaction`, `setActiveFaction`, and `exchangeResource`.
 
-## src mapper
+`App.tsx` keeps the app shell small. Game lifecycle behavior is handled by hooks:
 
-- `src/components/`: Genbrugelige UI-byggesten som knapper, cards og layout-komponenter.
-- `src/constants/`: Faste værdier som routes, config-nøgler og app-konstanter.
-- `src/hooks/`: Custom hooks til delt state, tema og adfærdslogik.
-- `src/navigation/`: Navigation, flowstyring og sammensætning af screens.
-- `src/pages/`: Screens og side-niveau komponenter for appens views.
-- `src/services/`: API-kald, datalag og integrationer mod eksterne services.
-- `src/theme/`: Farver, tokens og fælles visuelle designvalg.
-- `src/types/`: Delte TypeScript-typer og interfaces.
-- `src/utils/`: Små hjælpefunktioner og generelle utilities.
+- `useIdleProduction`: Applies idle production ticks.
+- `useGameProgressHydration`: Loads Supabase progress into Zustand after login.
+- `useGameProgressAutosave`: Saves current Zustand progress to Supabase.
+- `useAndroidNavigationBar`: Keeps the Android navigation bar hidden.
 
-## Zustand
+## Database
 
-Kort hvad bruger man det til:
-Zustand bruges til global state management i React og React Native. Det betyder, at flere sider og komponenter kan dele samme data uden at sende props hele vejen rundt manuelt.
+Database reference and setup scripts live in `schema/*.sql`.
 
-Hvordan er det brugt i mit projekt:
-I projektet ligger Zustand-storen i `src/store/useGameStore.ts`. Den holder styr på spillets centrale state: aktiv faction, unlocked factions, champion levels og resources som gold, iron, meat og clicks.
+Run seed scripts in order when setting up a new Supabase project:
 
-Komponenter som `Frontpage`, `Factions`, `Champions` og `EmbassyExchange` læser data direkte fra `useGameStore`. De bruger også actions fra storen, fx `performClick`, `upgradeChampion`, `unlockFaction`, `setActiveFaction` og `exchangeResource`.
+```text
+001_schema.sql
+002_policies.sql
+003_seed_factions.sql
+004_seed_champions.sql
+```
 
-I `App.tsx` bruges Zustand til spillets baggrundslogik. `applyIdleTick(1)` kører hvert sekund og producerer ressourcer fra champions. Når brugeren logger ind, bliver data fra Supabase hentet og lagt ind i Zustand med `hydrateGameState`. Autosave læser derefter den aktuelle Zustand-state hvert minut og gemmer den i Supabase.
-
-## Schema for DB
-
-Database-schemaet ligger i `schema/DB`.
+For manual setup in Supabase SQL Editor, `999_seed_all.sql` contains the faction and champion seed data in one file.

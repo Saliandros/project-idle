@@ -1,5 +1,5 @@
 -- Seed champions used by the app.
--- Add more rows in the VALUES list when new champions are introduced.
+-- Add more rows in the values list when new champions are introduced.
 -- faction_name must match a row in public.factions.
 
 insert into public.champions (name, faction_id, base_income)

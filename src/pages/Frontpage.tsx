@@ -158,7 +158,7 @@ export function Frontpage({ onNavigate, currentUser }: FrontpageProps) {
           {isDesktopWeb ? (
             <View style={styles.sidePanel}>
               <View style={styles.sidePanelHeader}>
-                <Text style={styles.sidePanelTitle}>Factions</Text>
+                <Text style={styles.sidePanelTitle}>Stronghold</Text>
                 <View style={styles.sidePanelGoldWrap}>
                   <Image
                     source={require("../../assets/images/General/coin.png")}
@@ -475,11 +475,15 @@ const styles = StyleSheet.create({
     height: isWeb ? 190 : 160,
     backgroundColor: theme.colors.background,
     borderRadius: isWeb ? 95 : 80,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    ...(isWeb
+      ? { boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)" }
+      : {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 6,
+          elevation: 8,
+        }),
   },
   clickerIcon: {
     width: isWeb ? 178 : 150,
@@ -495,10 +499,14 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     justifyContent: "flex-start",
     backgroundColor: "rgba(6, 18, 14, 0.74)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.24,
-    shadowRadius: 24,
+    ...(isWeb
+      ? { boxShadow: "0 16px 24px rgba(0, 0, 0, 0.24)" }
+      : {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.24,
+          shadowRadius: 24,
+        }),
   },
   sidePanelHeader: {
     paddingHorizontal: 22,
@@ -612,11 +620,15 @@ const styles = StyleSheet.create({
     padding: 30,
     margin: 20,
     alignItems: "center",
-    shadowColor: "#FF0000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 15,
+    ...(isWeb
+      ? { boxShadow: "0 0 10px rgba(255, 0, 0, 0.5)" }
+      : {
+          shadowColor: "#FF0000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
+          elevation: 15,
+        }),
   },
   factionPickerContainer: {
     width: "100%",
@@ -626,11 +638,15 @@ const styles = StyleSheet.create({
     borderColor: "rgba(233, 215, 172, 0.3)",
     padding: 22,
     margin: 20,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 18,
+    ...(isWeb
+      ? { boxShadow: "0 14px 24px rgba(0, 0, 0, 0.35)" }
+      : {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 14 },
+          shadowOpacity: 0.35,
+          shadowRadius: 24,
+          elevation: 18,
+        }),
   },
   modalTitle: {
     fontSize: 24,
@@ -638,9 +654,13 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
     textAlign: "center",
     marginBottom: 15,
-    textShadowColor: "#000000",
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 3,
+    ...(isWeb
+      ? { textShadow: "2px 2px 3px #000000" }
+      : {
+          textShadowColor: "#000000",
+          textShadowOffset: { width: 2, height: 2 },
+          textShadowRadius: 3,
+        }),
   },
   modalMessage: {
     fontSize: isWeb ? 19 : 18,

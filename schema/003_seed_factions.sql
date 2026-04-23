@@ -1,5 +1,5 @@
 -- Seed factions used by the app.
--- Add more rows in the VALUES list when new factions are introduced.
+-- Add more rows in the values list when new factions are introduced.
 
 insert into public.factions (name)
 select seed.name

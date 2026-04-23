@@ -102,7 +102,7 @@ export function Factions({ onNavigate }: FactionsProps) {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <Text style={styles.title}>Factions</Text>
+        <Text style={styles.title}>Stronghold</Text>
         <View style={styles.goldBar}>
           <Image
             source={require("../../assets/images/General/coin.png")}
@@ -383,9 +383,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     lineHeight: isWeb ? 19 : 18,
     color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.6)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    ...(isWeb
+      ? { textShadow: "0 1px 1px rgba(0, 0, 0, 0.6)" }
+      : {
+          textShadowColor: "rgba(0, 0, 0, 0.6)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 1,
+        }),
   },
   unlockTextUnlocked: {
     fontWeight: "700",
@@ -403,9 +407,13 @@ const styles = StyleSheet.create({
     fontSize: isWeb ? 16 : 15,
     color: "#FFFFFF",
     fontWeight: "600",
-    textShadowColor: "rgba(0, 0, 0, 0.6)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    ...(isWeb
+      ? { textShadow: "0 1px 1px rgba(0, 0, 0, 0.6)" }
+      : {
+          textShadowColor: "rgba(0, 0, 0, 0.6)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 1,
+        }),
   },
   unlockStatus: {
     fontSize: isWeb ? 15 : 14,
@@ -426,11 +434,15 @@ const styles = StyleSheet.create({
     padding: 30,
     margin: 20,
     alignItems: "center",
-    shadowColor: "#FF0000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 15,
+    ...(isWeb
+      ? { boxShadow: "0 0 10px rgba(255, 0, 0, 0.5)" }
+      : {
+          shadowColor: "#FF0000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
+          elevation: 15,
+        }),
   },
   modalTitle: {
     fontSize: 24,
@@ -438,9 +450,13 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
     textAlign: "center",
     marginBottom: 15,
-    textShadowColor: "#000000",
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 3,
+    ...(isWeb
+      ? { textShadow: "2px 2px 3px #000000" }
+      : {
+          textShadowColor: "#000000",
+          textShadowOffset: { width: 2, height: 2 },
+          textShadowRadius: 3,
+        }),
   },
   modalMessage: {
     fontSize: isWeb ? 19 : 18,

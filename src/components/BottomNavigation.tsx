@@ -24,7 +24,7 @@ export function BottomNavigation({
   const { width } = useWindowDimensions();
   const isHome = route === AppRoute.Home;
   const isFactions = route === AppRoute.Factions;
-  const isEmbassyExchange = route === AppRoute.Embassy_Exchange;
+  const isEmbassyExchange = route === AppRoute.EmbassyExchange;
   const isDesktopWeb = Platform.OS === 'web' && width >= 1024;
 
   useEffect(() => {
@@ -118,10 +118,10 @@ export function BottomNavigation({
           <Pressable
             style={({ pressed }) => [styles.navButton, isFactions && styles.navButtonActive, pressed && styles.navButtonPressed]}
             accessibilityRole="button"
-            accessibilityLabel="Factions"
+            accessibilityLabel="Stronghold"
             onPress={() => handleRouteChange(AppRoute.Factions)}
           >
-            {renderNavContent('shield-half', 'Factions')}
+            {renderNavContent('shield-half', 'Stronghold')}
           </Pressable>
         ) : null}
 
@@ -129,7 +129,7 @@ export function BottomNavigation({
           style={({ pressed }) => [styles.navButton, isEmbassyExchange && styles.navButtonActive, pressed && styles.navButtonPressed]}
           accessibilityRole="button"
           accessibilityLabel="Embassy"
-          onPress={() => handleRouteChange(AppRoute.Embassy_Exchange)}
+          onPress={() => handleRouteChange(AppRoute.EmbassyExchange)}
         >
           {renderNavContent('swap-horizontal', 'Embassy Exchange')}
         </Pressable>

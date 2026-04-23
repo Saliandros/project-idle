@@ -1,36 +1,81 @@
-import { ImageBackground, StyleSheet, Text, View, TouchableOpacity, Modal, Platform } from 'react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Image, ImageBackground, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { AppRoute } from '../constants/routes';
+import { embassyUnlockOrder } from '../data/embassy';
+import { factionDefinitions } from '../data/factions';
+import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
+import { formatDisplayNumber } from '../utils/formatNumber';
+import { fromRawResourceAmount } from '../utils/resources';
 
 type FactionsProps = {
 	onNavigate: (route: AppRoute) => void;
 };
 
+type FactionTab = 'champions' | 'unlocks';
+
 const isWeb = Platform.OS === 'web';
 
 export function Factions({ onNavigate }: FactionsProps) {
-	const [activeFaction, setActiveFaction] = useState<'lizardman' | 'human' | 'elves'>('lizardman');
+	const [activeTab, setActiveTab] = useState<FactionTab>('champions');
 	const [showLockedModal, setShowLockedModal] = useState(false);
-	const [lockedFactionName, setLockedFactionName] = useState<string>('');
+	const [lockedFactionName, setLockedFactionName] = useState('');
+	const activeFactionId = useGameStore((state) => state.activeFactionId);
+	const gold = useGameStore((state) => state.resources.gold);
+	const unlockedFactionIds = useGameStore((state) => state.unlockedFactionIds);
+	const setActiveFaction = useGameStore((state) => state.setActiveFaction);
+	const unlockFaction = useGameStore((state) => state.unlockFaction);
+	const goldAmount = fromRawResourceAmount('gold', gold);
 
-	const handleFactionPress = (faction: 'lizardman' | 'human' | 'elves') => {
-		if (faction === 'lizardman') {
-			setActiveFaction(faction);
-			onNavigate(AppRoute.Champions);
-		} else {
-			// Gem faction navn og vis game-style popup for locked factions
-			let factionDisplayName: string = '';
-			if (faction === 'human') {
-				factionDisplayName = 'The Humans';
-			} else if (faction === 'elves') {
-				factionDisplayName = 'The Elves';
+	const unlockRows = useMemo(
+		() =>
+			embassyUnlockOrder
+				.map((factionId) => factionDefinitions.find((entry) => entry.id === factionId))
+				.filter((faction): faction is (typeof factionDefinitions)[number] => Boolean(faction)),
+		[],
+	);
+
+	const handleFactionPress = (factionId: typeof factionDefinitions[number]['id']) => {
+		const faction = factionDefinitions.find((entry) => entry.id === factionId);
+
+		if (!faction) {
+			return;
+		}
+
+		if (unlockedFactionIds.includes(factionId)) {
+			setActiveFaction(factionId);
+
+			if (faction.route) {
+				onNavigate(faction.route);
 			}
-			setLockedFactionName(factionDisplayName);
+
+			return;
+		}
+
+		setLockedFactionName(faction.lockedName);
+		setShowLockedModal(true);
+	};
+
+	const handleUnlockPress = (factionId: typeof factionDefinitions[number]['id']) => {
+		const faction = factionDefinitions.find((entry) => entry.id === factionId);
+
+		if (!faction) {
+			return;
+		}
+
+		if (unlockedFactionIds.includes(factionId)) {
+			return;
+		}
+
+		const didUnlock = unlockFaction(factionId);
+
+		if (!didUnlock) {
+			setLockedFactionName(faction.lockedName);
 			setShowLockedModal(true);
 		}
 	};
+
 	return (
 		<ImageBackground
 			source={require('../../assets/images/Factions/Lizardman/Shattered Isles Map.png')}
@@ -40,54 +85,110 @@ export function Factions({ onNavigate }: FactionsProps) {
 		>
 			<View style={styles.overlay}>
 				<Text style={styles.title}>Factions</Text>
-				
-				<View style={styles.factionContainer}>
-					{/* Lizardman - Unlocked (grøn) */}
-					<TouchableOpacity 
-						style={[
-							styles.factionBox, 
-							styles.unlockedBox,
-							activeFaction === 'lizardman' && styles.activeFaction
-						]}
-						onPress={() => handleFactionPress('lizardman')}
+				<View style={styles.goldBar}>
+					<Image
+						source={require('../../assets/images/General/coin.png')}
+						style={styles.goldBarIcon}
+					/>
+					<Text style={styles.goldBarText}>{formatDisplayNumber(goldAmount)}</Text>
+				</View>
+
+				<View style={styles.tabRow}>
+					<TouchableOpacity
+						style={[styles.tabButton, activeTab === 'champions' && styles.tabButtonActive]}
+						onPress={() => setActiveTab('champions')}
+						activeOpacity={0.85}
 					>
-						<Text style={[
-							styles.factionText,
-							activeFaction === 'lizardman' && styles.activeFactionText
-						]}>
-							Lizardman
-						</Text>
+						<Text style={styles.tabButtonText}>Champions</Text>
 					</TouchableOpacity>
-					
-					{/* Human - Locked (rød) */}
-					<TouchableOpacity 
-						style={[styles.factionBox, styles.lockedBox]}
-						onPress={() => handleFactionPress('human')}
+					<TouchableOpacity
+						style={[styles.tabButton, activeTab === 'unlocks' && styles.tabButtonActive]}
+						onPress={() => setActiveTab('unlocks')}
+						activeOpacity={0.85}
 					>
-						<Text style={styles.factionText}>Human</Text>
-					</TouchableOpacity>
-					
-					{/* Elves - Locked (rød) */}
-					<TouchableOpacity 
-						style={[styles.factionBox, styles.lockedBox]}
-						onPress={() => handleFactionPress('elves')}
-					>
-						<Text style={styles.factionText}>Elves</Text>
+						<Text style={styles.tabButtonText}>Unlocks</Text>
 					</TouchableOpacity>
 				</View>
-				
-				{/* Game-style Locked Modal */}
+
+				{activeTab === 'champions' ? (
+					<View style={styles.factionContainer}>
+						{factionDefinitions.map((faction) => {
+							const isUnlocked = unlockedFactionIds.includes(faction.id);
+							const isActive = activeFactionId === faction.id;
+
+							return (
+								<TouchableOpacity
+									key={faction.id}
+									style={[
+										styles.factionBox,
+										isUnlocked ? styles.unlockedBox : styles.lockedBox,
+										isActive && styles.activeFaction,
+									]}
+									onPress={() => handleFactionPress(faction.id)}
+								>
+									<Text style={[styles.factionText, isActive && styles.activeFactionText]}>
+										{faction.label}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
+					</View>
+				) : (
+					<ScrollView
+						style={styles.unlockList}
+						contentContainerStyle={styles.unlockListContent}
+						showsVerticalScrollIndicator={Platform.OS === 'web'}
+					>
+						{unlockRows
+							.sort((a, b) => Number(unlockedFactionIds.includes(a.id)) - Number(unlockedFactionIds.includes(b.id)))
+							.map((faction) => {
+							const isUnlocked = unlockedFactionIds.includes(faction.id);
+
+							return (
+								<TouchableOpacity
+									key={faction.id}
+									style={[styles.unlockRow, isUnlocked ? styles.unlockRowUnlocked : styles.unlockRowLocked]}
+									activeOpacity={0.8}
+									onPress={isUnlocked ? undefined : () => handleUnlockPress(faction.id)}
+								>
+									<View>
+										<Text style={[styles.unlockText, isUnlocked && styles.unlockTextUnlocked]}>
+											{isUnlocked ? 'Unlocked' : 'Unlock'}{'\n'}{faction.label}
+										</Text>
+									</View>
+									<View style={styles.unlockCost}>
+										{isUnlocked ? (
+											<Text style={styles.unlockStatus}>Ready</Text>
+										) : (
+											<>
+												<Image
+													source={require('../../assets/images/General/coin.png')}
+													style={styles.unlockCoin}
+												/>
+												<Text style={styles.unlockAmount}>{faction.unlockCostGold}</Text>
+											</>
+										)}
+									</View>
+								</TouchableOpacity>
+							);
+						})}
+					</ScrollView>
+				)}
+
 				<Modal
 					visible={showLockedModal}
 					transparent={true}
 					animationType="fade"
+					onRequestClose={() => setShowLockedModal(false)}
 				>
 					<View style={styles.modalOverlay}>
 						<View style={styles.modalContainer}>
 							<Text style={styles.modalTitle}>FACTION LOCKED</Text>
-							<Text style={styles.modalMessage}>The {lockedFactionName} Faction is still Locked</Text>
-							<Text style={styles.modalSubtext}>Raise your standing with {lockedFactionName} to be able to purchase "unlock"</Text>
-							<TouchableOpacity 
+							<Text style={styles.modalMessage}>{lockedFactionName} are still Locked</Text>
+							<Text style={styles.modalSubtext}>
+								You need more gold to unlock {lockedFactionName}
+							</Text>
+							<TouchableOpacity
 								style={styles.modalButton}
 								onPress={() => setShowLockedModal(false)}
 							>
@@ -120,8 +221,52 @@ const styles = StyleSheet.create({
 		fontSize: isWeb ? 32 : 24,
 		fontWeight: '700',
 		color: '#FFFFFF',
-		marginBottom: 30,
+		marginBottom: 12,
 		marginLeft: 20,
+	},
+	goldBar: {
+		marginLeft: 20,
+		marginRight: 20,
+		marginBottom: 14,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+	},
+	goldBarIcon: {
+		width: 22,
+		height: 22,
+	},
+	goldBarText: {
+		fontSize: isWeb ? 18 : 16,
+		fontWeight: '700',
+		color: '#FFFFFF',
+	},
+	tabRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		marginBottom: 16,
+		gap: 10,
+		backgroundColor: theme.colors.navColor,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: 'rgba(255, 255, 255, 0.4)',
+	},
+	tabButton: {
+		flex: 1,
+		height: 64,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderRadius: 14,
+		backgroundColor: 'rgba(255, 255, 255, 0.08)',
+	},
+	tabButtonActive: {
+		backgroundColor: 'rgba(255, 255, 255, 0.2)',
+	},
+	tabButtonText: {
+		color: theme.colors.textPrimary,
+		fontSize: isWeb ? 17 : 15,
+		fontWeight: '700',
 	},
 	factionContainer: {
 		flex: 1,
@@ -156,7 +301,62 @@ const styles = StyleSheet.create({
 		fontWeight: '700',
 		color: '#FFFFFF',
 	},
-	// Game-style Modal Styles
+	unlockList: {
+		flex: 1,
+	},
+	unlockListContent: {
+		paddingBottom: 24,
+	},
+	unlockRow: {
+		width: '100%',
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingVertical: 16,
+		paddingHorizontal: 20,
+		borderBottomWidth: 1,
+		borderBottomColor: 'rgba(0, 0, 0, 0.65)',
+	},
+	unlockRowLocked: {
+		backgroundColor: 'rgba(142, 54, 54, 0.6)',
+	},
+	unlockRowUnlocked: {
+		backgroundColor: 'rgba(69, 142, 54, 0.7)',
+	},
+	unlockText: {
+		fontSize: isWeb ? 16 : 15,
+		fontWeight: '600',
+		lineHeight: isWeb ? 19 : 18,
+		color: '#FFFFFF',
+		textShadowColor: 'rgba(0, 0, 0, 0.6)',
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 1,
+	},
+	unlockTextUnlocked: {
+		fontWeight: '700',
+	},
+	unlockCost: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 10,
+	},
+	unlockCoin: {
+		width: 24,
+		height: 24,
+	},
+	unlockAmount: {
+		fontSize: isWeb ? 16 : 15,
+		color: '#FFFFFF',
+		fontWeight: '600',
+		textShadowColor: 'rgba(0, 0, 0, 0.6)',
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 1,
+	},
+	unlockStatus: {
+		fontSize: isWeb ? 15 : 14,
+		color: '#E7FFE3',
+		fontWeight: '700',
+	},
 	modalOverlay: {
 		flex: 1,
 		backgroundColor: 'rgba(0, 0, 0, 0.8)',

@@ -1,77 +1,109 @@
 import { useMemo, useState } from 'react';
-import { Image, ImageBackground, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Slider from '@react-native-community/slider';
+import {
+	Image,
+	ImageBackground,
+	Modal,
+	Platform,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	View,
+} from 'react-native';
 
 import { AppRoute } from '../constants/routes';
+import { embassyResourceOptions } from '../data/embassy';
+import { useGameStore } from '../store/useGameStore';
 import { theme } from '../theme/theme';
+import { ResourceId } from '../types/game';
+import { formatDisplayNumber } from '../utils/formatNumber';
+import { fromRawResourceAmount } from '../utils/resources';
 
 type EmbassyExchangeProps = {
 	onNavigate: (route: AppRoute) => void;
 };
 
-type EmbassyResourceId = 'meat';
-
-type EmbassyResourceOption = {
-	id: EmbassyResourceId;
-	label: string;
-	amount: number;
-	goldValue: number;
-};
-
-const resourceOptions: EmbassyResourceOption[] = [
-	{ id: 'meat', label: 'Meat', amount: 9, goldValue: 1485 },
-];
-
-const unlockPlaceholders = [
-	{ name: 'Human', unlocked: false },
-	{ name: 'Lizardman', unlocked: true },
-	{ name: 'Orcs', unlocked: false },
-	{ name: 'Goblin Tribes', unlocked: false },
-	{ name: 'Dwarves', unlocked: false },
-	{ name: 'High Elves', unlocked: false },
-	{ name: 'Dark Elves', unlocked: false },
-	{ name: 'Wood Elves', unlocked: false },
-	{ name: 'Ogres', unlocked: false },
-	{ name: 'Undead Legion', unlocked: false },
-	{ name: 'Beastmen', unlocked: false },
-	{ name: 'Nomad Clans', unlocked: false },
-	{ name: 'Sand Kingdoms', unlocked: false },
-	{ name: 'Frostborn', unlocked: false },
-	{ name: 'Dragon Court', unlocked: false },
-	{ name: 'Serpent Cult', unlocked: false },
-];
-
 const isWeb = Platform.OS === 'web';
+
+const resourceIcons: Partial<Record<ResourceId, number>> = {
+	gold: require('../../assets/images/General/coin.png'),
+	iron: require('../../assets/images/General/coin.png'),
+	meat: require('../../assets/images/General/meat.png'),
+};
 
 export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProps) {
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-	const [selectedResourceId, setSelectedResourceId] = useState<EmbassyResourceId>('meat');
-	const [showUnlockModal, setShowUnlockModal] = useState(false);
-	const [unlockViewportHeight, setUnlockViewportHeight] = useState(0);
-	const [unlockContentHeight, setUnlockContentHeight] = useState(0);
+	const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>('meat');
+	const [tradeDrafts, setTradeDrafts] = useState<Partial<Record<ResourceId, string>>>({});
+	const [showTradeErrorModal, setShowTradeErrorModal] = useState(false);
+	const resources = useGameStore((state) => state.resources);
+	const exchangeResource = useGameStore((state) => state.exchangeResource);
 
-	const selectedResource = useMemo(
-		() => resourceOptions.find((option) => option.id === selectedResourceId) ?? resourceOptions[0],
-		[selectedResourceId],
+	const selectedResource =
+		embassyResourceOptions.find((option) => option.id === selectedResourceId) ??
+		embassyResourceOptions[0];
+	const selectedTradeAmount = Math.max(
+		0,
+		Number.parseInt(tradeDrafts[selectedResource.id] ?? '', 10) || 0,
 	);
-	const sortedUnlockRows = useMemo(
+	const selectedResourceOwnedAmount = Math.floor(
+		fromRawResourceAmount(selectedResource.id, resources[selectedResource.id]),
+	);
+
+	const invoiceRows = useMemo(
 		() =>
-			unlockPlaceholders
-				.map((item, index) => ({ ...item, index }))
-				.sort((a, b) => Number(a.unlocked) - Number(b.unlocked) || a.index - b.index),
-		[],
+			embassyResourceOptions.map((option) => {
+				const rawInput = tradeDrafts[option.id] ?? '';
+				const amount = Math.max(0, Number.parseInt(rawInput, 10) || 0);
+				const goldValue = Math.floor(amount / option.exchangeAmount) * option.goldYield;
+
+				return {
+					...option,
+					amount,
+					goldValue,
+					hasDraft: rawInput.trim().length > 0 && amount > 0,
+				};
+			}),
+		[tradeDrafts],
 	);
 
-	const handleAccept = () => {};
-	const toggleDropdown = () => setIsDropdownOpen((previous) => !previous);
-	const handleUnlockPress = () => {
-		setIsDropdownOpen(false);
-		setShowUnlockModal(true);
+	const activeInvoiceRows = invoiceRows.filter((row) => row.hasDraft);
+	const totalGoldValue = activeInvoiceRows.reduce((sum, row) => sum + row.goldValue, 0);
+	const hasTradeDraft = activeInvoiceRows.length > 0;
+
+	const handleAccept = () => {
+		const didAnyExchange = activeInvoiceRows.reduce((didExchange, row) => {
+			const exchanged = exchangeResource(row.id, row.amount);
+			return didExchange || exchanged;
+		}, false);
+
+		if (!didAnyExchange) {
+			setShowTradeErrorModal(true);
+			return;
+		}
+
+		setTradeDrafts({});
 	};
-	const handleSelectResource = (resourceId: EmbassyResourceId) => {
+
+	const handleSelectResource = (resourceId: ResourceId) => {
 		setSelectedResourceId(resourceId);
 		setIsDropdownOpen(false);
 	};
-	const isUnlockScrollEnabled = unlockContentHeight > unlockViewportHeight;
+
+	const handleTradeDraftChange = (resourceId: ResourceId, value: string) => {
+		const ownedAmount = Math.floor(fromRawResourceAmount(resourceId, resources[resourceId]));
+		const parsedValue = Math.max(0, Number.parseInt(value, 10) || 0);
+		const clampedValue = Math.min(parsedValue, ownedAmount);
+
+		setTradeDrafts((current) => ({
+			...current,
+			[resourceId]: clampedValue === 0 ? '' : String(clampedValue),
+		}));
+	};
+
+	const tradeErrorMessage = hasTradeDraft
+		? 'You dont have enough resources to complete this trade'
+		: 'Add at least one resource line before accepting the trade';
 
 	return (
 		<ImageBackground
@@ -94,14 +126,14 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 						<View style={styles.exchangePanelOverlay} />
 						<View style={styles.exchangePanelContent}>
 							<View style={styles.selectorContainer}>
-								<TouchableOpacity style={styles.selectorBox} onPress={toggleDropdown} activeOpacity={0.8}>
+								<TouchableOpacity style={styles.selectorBox} onPress={() => setIsDropdownOpen((prev) => !prev)} activeOpacity={0.8}>
 									<Text style={styles.selectorText}>{selectedResource.label}</Text>
 									<Text style={styles.selectorChevron}>{isDropdownOpen ? '^' : 'v'}</Text>
 								</TouchableOpacity>
 
 								{isDropdownOpen ? (
 									<View style={styles.dropdownMenu}>
-										{resourceOptions.map((option) => (
+										{embassyResourceOptions.map((option) => (
 											<TouchableOpacity
 												key={option.id}
 												style={styles.dropdownOption}
@@ -121,25 +153,80 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 							</View>
 
 							<View style={styles.resourceRow}>
-								<View style={styles.resourceInfo}>
-									<Image
-										source={require('../../assets/images/General/meat.png')}
-										style={styles.resourceIcon}
-									/>
-									<Text style={styles.resourceValue}>
-										{selectedResource.amount} {selectedResource.label}
-									</Text>
-								</View>
-								<View style={styles.resourceInfo}>
-									<Image
-										source={require('../../assets/images/General/coin.png')}
-										style={styles.resourceIcon}
-									/>
-									<Text style={styles.resourceValue}>{selectedResource.goldValue}</Text>
-								</View>
+								{hasTradeDraft ? (
+									<>
+										<View style={styles.invoiceSummary}>
+											{activeInvoiceRows.map((row) => (
+												<View key={row.id} style={styles.invoiceSummaryRow}>
+													<Image
+														source={resourceIcons[row.id] ?? resourceIcons.meat!}
+														style={styles.resourceIcon}
+													/>
+													<Text style={styles.resourceValue}>
+														{formatDisplayNumber(row.amount)} {row.label}
+													</Text>
+												</View>
+											))}
+										</View>
+										<View style={styles.invoiceSummary}>
+											<View style={styles.invoiceSummaryRow}>
+												<Image
+													source={resourceIcons.gold!}
+													style={styles.resourceIcon}
+												/>
+												<Text style={styles.resourceValue}>
+													{formatDisplayNumber(totalGoldValue)}
+												</Text>
+											</View>
+										</View>
+									</>
+								) : (
+									<View style={styles.invoicePlaceholder}>
+										<Text style={styles.invoicePlaceholderText}>No trade draft yet</Text>
+									</View>
+								)}
 							</View>
 
+							{activeInvoiceRows.length >= 2 ? (
+								<View style={styles.invoiceTotalRow}>
+									<Text style={styles.invoiceTotalLabel}>Invoice Total</Text>
+									<View style={styles.invoiceTotalValueWrap}>
+										<Image
+											source={resourceIcons.gold!}
+											style={styles.invoiceTotalIcon}
+										/>
+										<Text style={styles.invoiceTotalValue}>
+											{formatDisplayNumber(totalGoldValue)}
+										</Text>
+									</View>
+								</View>
+							) : null}
+
 							<View style={styles.actionArea}>
+								<View style={styles.tradeLine}>
+									<Text style={styles.tradeLineLabel}>{selectedResource.label}</Text>
+									<View style={styles.tradeSliderBlock}>
+										<View style={styles.tradeSliderHeader}>
+											<Text style={styles.tradeSliderValue}>
+												{formatDisplayNumber(selectedTradeAmount)}
+											</Text>
+											<Text style={styles.tradeSliderHint}>
+												Owned: {formatDisplayNumber(selectedResourceOwnedAmount)}{'\n'}
+												1 gold per {selectedResource.exchangeAmount} {selectedResource.label.toLowerCase()}
+											</Text>
+										</View>
+										<Slider
+											minimumValue={0}
+											maximumValue={selectedResourceOwnedAmount}
+											step={1}
+											value={selectedTradeAmount}
+											minimumTrackTintColor="#E9D7AC"
+											maximumTrackTintColor="rgba(255, 255, 255, 0.28)"
+											thumbTintColor="#F7E7B8"
+											onValueChange={(value) => handleTradeDraftChange(selectedResource.id, value === 0 ? '' : String(value))}
+										/>
+									</View>
+								</View>
 								<TouchableOpacity
 									style={styles.acceptButton}
 									onPress={handleAccept}
@@ -150,63 +237,22 @@ export function EmbassyExchange({ onNavigate: _onNavigate }: EmbassyExchangeProp
 							</View>
 						</View>
 					</ImageBackground>
-
-					<View style={[styles.unlockScrollArea, isWeb && styles.unlockScrollAreaWeb]}>
-						<ScrollView
-							style={[styles.unlockList, Platform.OS === 'web' && styles.unlockListWeb]}
-							contentContainerStyle={[styles.unlockListContent, isWeb && styles.unlockListContentWeb]}
-							showsVerticalScrollIndicator={isUnlockScrollEnabled}
-							persistentScrollbar={isUnlockScrollEnabled}
-							scrollEnabled={isUnlockScrollEnabled}
-							onLayout={(event) => setUnlockViewportHeight(event.nativeEvent.layout.height)}
-							onContentSizeChange={(_, contentHeight) => setUnlockContentHeight(contentHeight)}
-						>
-							{sortedUnlockRows.map((item) => (
-								<TouchableOpacity
-									key={item.name}
-									style={[styles.unlockRow, item.unlocked ? styles.unlockRowUnlocked : styles.unlockRowLocked]}
-									activeOpacity={0.8}
-									onPress={item.unlocked ? undefined : handleUnlockPress}
-								>
-									<View>
-										<Text style={[styles.unlockText, item.unlocked && styles.unlockTextUnlocked]}>
-											{item.unlocked ? 'Unlocked' : 'Unlock'}{'\n'}{item.name}
-										</Text>
-									</View>
-									<View style={styles.unlockCost}>
-										{item.unlocked ? (
-											<Text style={styles.unlockStatus}>Ready</Text>
-										) : (
-											<>
-												<Image
-													source={require('../../assets/images/General/coin.png')}
-													style={styles.unlockCoin}
-												/>
-												<Text style={styles.unlockAmount}>1485</Text>
-											</>
-										)}
-									</View>
-								</TouchableOpacity>
-							))}
-						</ScrollView>
-
-					</View>
 				</View>
 
 				<Modal
-					visible={showUnlockModal}
+					visible={showTradeErrorModal}
 					transparent={true}
 					animationType="fade"
 					presentationStyle="overFullScreen"
-					onRequestClose={() => setShowUnlockModal(false)}
+					onRequestClose={() => setShowTradeErrorModal(false)}
 				>
 					<View style={styles.modalOverlay}>
 						<View style={styles.modalContainer}>
-							<Text style={styles.modalTitle}>NOT ENOUGH GOLD</Text>
-							<Text style={styles.modalMessage}>You dont have the required amount of gold</Text>
+							<Text style={styles.modalTitle}>TRADE FAILED</Text>
+							<Text style={styles.modalMessage}>{tradeErrorMessage}</Text>
 							<TouchableOpacity
 								style={styles.modalButton}
-								onPress={() => setShowUnlockModal(false)}
+								onPress={() => setShowTradeErrorModal(false)}
 								activeOpacity={0.8}
 							>
 								<Text style={styles.modalButtonText}>UNDERSTOOD</Text>
@@ -247,22 +293,19 @@ const styles = StyleSheet.create({
 	},
 	mainContent: {
 		flex: 1,
-	},
-	mainContentWeb: {
-		flexDirection: 'row',
-		gap: 14,
 		paddingHorizontal: 20,
 		paddingBottom: 8,
 	},
+	mainContentWeb: {
+		paddingHorizontal: 0,
+		paddingBottom: 0,
+	},
 	exchangePanel: {
-		height: 340,
-		width: '100%',
+		flex: 1,
 		overflow: 'hidden',
 	},
 	exchangePanelWeb: {
-		flex: 1,
-		height: '100%',
-		width: undefined,
+		width: '100%',
 	},
 	exchangePanelImage: {
 		opacity: 0.95,
@@ -273,15 +316,20 @@ const styles = StyleSheet.create({
 	},
 	exchangePanelContent: {
 		flex: 1,
-		paddingHorizontal: 18,
-		paddingTop: 10,
-		paddingBottom: 24,
+		paddingHorizontal: 20,
+		paddingTop: 16,
+		paddingBottom: 28,
+	},
+	selectorContainer: {
+		position: 'relative',
+		zIndex: 5,
 	},
 	selectorBox: {
 		backgroundColor: 'rgba(234, 225, 203, 0.95)',
 		borderRadius: 8,
-		paddingVertical: 9,
-		paddingHorizontal: 12,
+		minHeight: 56,
+		paddingVertical: 11,
+		paddingHorizontal: 14,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
@@ -296,18 +344,14 @@ const styles = StyleSheet.create({
 		shadowRadius: 2,
 		elevation: 3,
 	},
-	selectorContainer: {
-		position: 'relative',
-		zIndex: 5,
-	},
 	selectorText: {
-		fontSize: isWeb ? 19 : 18,
+		fontSize: isWeb ? 21 : 19,
 		color: '#2A1C0E',
 		fontWeight: '700',
 		letterSpacing: 0.3,
 	},
 	selectorChevron: {
-		fontSize: 15,
+		fontSize: 17,
 		fontWeight: '700',
 		color: '#2A1C0E',
 	},
@@ -340,43 +384,124 @@ const styles = StyleSheet.create({
 		fontWeight: '700',
 	},
 	headerRow: {
-		marginTop: 18,
+		marginTop: 22,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
 	},
 	headerText: {
-		fontSize: isWeb ? 17 : 16,
+		fontSize: isWeb ? 19 : 17,
 		color: '#FFFFFF',
+		fontWeight: '700',
 	},
 	resourceRow: {
+		marginTop: 14,
+		minHeight: 104,
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+		justifyContent: 'space-between',
+	},
+	invoicePlaceholder: {
+		width: '100%',
+		minHeight: 34,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	invoicePlaceholderText: {
+		fontSize: isWeb ? 18 : 16,
+		color: 'rgba(255, 255, 255, 0.55)',
+		fontStyle: 'italic',
+	},
+	invoiceSummary: {
+		gap: 10,
+	},
+	invoiceSummaryRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	resourceIcon: {
+		width: 40,
+		height: 40,
+	},
+	resourceValue: {
+		fontSize: isWeb ? 20 : 18,
+		color: '#FFFFFF',
+		fontWeight: '600',
+	},
+	invoiceTotalRow: {
 		marginTop: 10,
+		paddingTop: 10,
+		paddingBottom: 4,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
+		borderTopWidth: 1,
+		borderTopColor: 'rgba(255, 255, 255, 0.18)',
 	},
-	resourceInfo: {
+	invoiceTotalLabel: {
+		fontSize: isWeb ? 18 : 16,
+		fontWeight: '700',
+		color: '#E9D7AC',
+	},
+	invoiceTotalValueWrap: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 10,
 	},
-	resourceIcon: {
-		width: 34,
-		height: 34,
+	invoiceTotalIcon: {
+		width: 28,
+		height: 28,
 	},
-	resourceValue: {
-		fontSize: isWeb ? 18 : 17,
+	invoiceTotalValue: {
+		fontSize: isWeb ? 22 : 20,
+		fontWeight: '800',
 		color: '#FFFFFF',
 	},
 	actionArea: {
 		flex: 1,
 		justifyContent: 'flex-end',
+		gap: 16,
+	},
+	tradeLine: {
+		gap: 10,
+	},
+	tradeLineLabel: {
+		fontSize: isWeb ? 17 : 15,
+		fontWeight: '700',
+		color: '#E9D7AC',
+		letterSpacing: 0.4,
+	},
+	tradeSliderBlock: {
+		backgroundColor: 'rgba(14, 24, 20, 0.28)',
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderWidth: 1,
+		borderColor: 'rgba(233, 215, 172, 0.18)',
+	},
+	tradeSliderHeader: {
+		flexDirection: 'row',
+		alignItems: 'baseline',
+		justifyContent: 'space-between',
+		marginBottom: 8,
+	},
+	tradeSliderValue: {
+		fontSize: isWeb ? 24 : 22,
+		fontWeight: '800',
+		color: '#FFFFFF',
+	},
+	tradeSliderHint: {
+		fontSize: isWeb ? 14 : 13,
+		color: 'rgba(255, 255, 255, 0.68)',
+		textAlign: 'right',
 	},
 	acceptButton: {
 		backgroundColor: 'rgba(226, 212, 178, 0.98)',
 		borderRadius: 9,
-		paddingVertical: 9,
+		minHeight: 58,
+		paddingVertical: 11,
 		alignItems: 'center',
+		justifyContent: 'center',
 		borderWidth: 2,
 		borderTopColor: '#FFF2C6',
 		borderLeftColor: '#FFF2C6',
@@ -389,7 +514,7 @@ const styles = StyleSheet.create({
 		elevation: 5,
 	},
 	acceptButtonText: {
-		fontSize: isWeb ? 19 : 18,
+		fontSize: isWeb ? 21 : 19,
 		color: '#2C1D0C',
 		fontWeight: '800',
 		letterSpacing: 0.8,
@@ -397,81 +522,6 @@ const styles = StyleSheet.create({
 		textShadowColor: 'rgba(255, 255, 255, 0.35)',
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 1,
-	},
-	unlockList: {
-		marginTop: 0,
-		paddingHorizontal: 0,
-		flex: 1,
-	},
-	unlockListWeb: {
-		paddingRight: 10,
-	},
-	unlockScrollArea: {
-		flex: 1,
-		position: 'relative',
-		borderTopWidth: 1,
-		borderTopColor: 'rgba(0, 0, 0, 0.6)',
-	},
-	unlockScrollAreaWeb: {
-		flex: 1,
-		borderTopWidth: 0,
-		overflow: 'hidden',
-	},
-	unlockListContent: {
-		paddingBottom: 120,
-	},
-	unlockListContentWeb: {
-		paddingBottom: 24,
-	},
-	unlockRow: {
-		width: '100%',
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingVertical: 16,
-		paddingHorizontal: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: 'rgba(0, 0, 0, 0.65)',
-	},
-	unlockRowLocked: {
-		backgroundColor: 'rgba(142, 54, 54, 0.6)',
-	},
-	unlockRowUnlocked: {
-		backgroundColor: 'rgba(69, 142, 54, 0.7)',
-	},
-	unlockText: {
-		fontSize: isWeb ? 16 : 15,
-		fontWeight: '600',
-		lineHeight: isWeb ? 19 : 18,
-		color: '#FFFFFF',
-		textShadowColor: 'rgba(0, 0, 0, 0.6)',
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 1,
-	},
-	unlockTextUnlocked: {
-		fontWeight: '700',
-	},
-	unlockCost: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 10,
-	},
-	unlockCoin: {
-		width: 24,
-		height: 24,
-	},
-	unlockAmount: {
-		fontSize: isWeb ? 16 : 15,
-		color: '#FFFFFF',
-		fontWeight: '600',
-		textShadowColor: 'rgba(0, 0, 0, 0.6)',
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 1,
-	},
-	unlockStatus: {
-		fontSize: isWeb ? 15 : 14,
-		color: '#E7FFE3',
-		fontWeight: '700',
 	},
 	modalOverlay: {
 		flex: 1,

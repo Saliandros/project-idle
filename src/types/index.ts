@@ -6,7 +6,7 @@ export type ThemeColors = {
   accent: string;
 };
 
-export type ResourceType = 'gold' | 'wood' | 'iron';
+export type ResourceType = 'gold' | 'wood' | 'iron' | 'meat';
 
 export type Profile = {
   id: string;

@@ -112,38 +112,25 @@ export default function App() {
       return;
     }
 
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     let isDisposed = false;
     let isSaving = false;
-    let hasPendingChanges = false;
 
-    const clearScheduledSave = () => {
-      if (!timeoutId) {
+    const clearAutoSaveInterval = () => {
+      if (!intervalId) {
         return;
       }
 
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    };
-
-    const scheduleSave = () => {
-      if (timeoutId || isSaving || isDisposed) {
-        return;
-      }
-
-      timeoutId = setTimeout(() => {
-        timeoutId = null;
-        void runSave();
-      }, AUTO_SAVE_INTERVAL_MS);
+      clearInterval(intervalId);
+      intervalId = null;
     };
 
     const runSave = async () => {
-      if (isSaving || isDisposed || !hasPendingChanges) {
+      if (isSaving || isDisposed) {
         return;
       }
 
       isSaving = true;
-      hasPendingChanges = false;
       setAutoSaveState('saving');
 
       const state = useGameStore.getState();
@@ -167,32 +154,21 @@ export default function App() {
           return;
         }
 
-        hasPendingChanges = true;
         setAutoSaveState('error');
         console.log('Game progress save error:', error);
       } finally {
         isSaving = false;
-
-        if (hasPendingChanges && !isDisposed) {
-          scheduleSave();
-        }
       }
     };
 
-    const unsubscribe = useGameStore.subscribe(() => {
-      hasPendingChanges = true;
-
-      if (!isSaving) {
-        setAutoSaveState('pending');
-      }
-
-      scheduleSave();
-    });
+    setAutoSaveState('pending');
+    intervalId = setInterval(() => {
+      void runSave();
+    }, AUTO_SAVE_INTERVAL_MS);
 
     return () => {
       isDisposed = true;
-      clearScheduledSave();
-      unsubscribe();
+      clearAutoSaveInterval();
     };
   }, [currentUser, isGameReady]);
 

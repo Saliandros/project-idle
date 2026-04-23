@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, AppState } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,7 +15,7 @@ import { loadGameProgress, saveGameProgress } from './src/services/gameProgress'
 import { useGameStore } from './src/store/useGameStore';
 import { TestUser } from './src/types';
 
-const AUTO_SAVE_INTERVAL_MS = 60000;
+const AUTO_SAVE_INTERVAL_MS = 15000;
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
@@ -26,6 +26,16 @@ export default function App() {
   const applyIdleTick = useGameStore((state) => state.applyIdleTick);
   const hydrateGameState = useGameStore((state) => state.hydrateGameState);
   const resetGameState = useGameStore((state) => state.resetGameState);
+  const currentUserRef = useRef(currentUser);
+  const isGameReadyRef = useRef(isGameReady);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    isGameReadyRef.current = isGameReady;
+  }, [isGameReady]);
 
   useEffect(() => {
     // Skjul Android navigation bar
@@ -162,15 +172,60 @@ export default function App() {
     };
 
     setAutoSaveState('pending');
+    void runSave();
     intervalId = setInterval(() => {
       void runSave();
     }, AUTO_SAVE_INTERVAL_MS);
 
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'inactive' || nextAppState === 'background') {
+        void runSave();
+      }
+    });
+
     return () => {
       isDisposed = true;
+      subscription.remove();
       clearAutoSaveInterval();
     };
   }, [currentUser, isGameReady]);
+
+  useEffect(() => {
+    const browserWindow = (globalThis as typeof globalThis & {
+      addEventListener?: (type: string, listener: () => void) => void;
+      removeEventListener?: (type: string, listener: () => void) => void;
+    });
+
+    if (
+      typeof browserWindow.addEventListener !== 'function' ||
+      typeof browserWindow.removeEventListener !== 'function'
+    ) {
+      return;
+    }
+
+    const handleBeforeUnload = () => {
+      const nextUser = currentUserRef.current;
+
+      if (!nextUser || typeof nextUser.id !== 'string' || !isGameReadyRef.current) {
+        return;
+      }
+
+      const state = useGameStore.getState();
+
+      void saveGameProgress(nextUser.id, {
+        activeFactionId: state.activeFactionId,
+        championLevels: state.championLevels,
+        resources: state.resources,
+        unlockedFactionIds: state.unlockedFactionIds,
+      });
+    };
+
+    browserWindow.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      browserWindow.removeEventListener?.('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   useEffect(() => {
     if (currentUser) {

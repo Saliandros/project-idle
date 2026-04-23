@@ -43,6 +43,18 @@ type SaveMutationResult = {
   error: { message: string } | null;
 };
 
+type FactionMaps = {
+  dbFactionIdByGameId: Map<FactionId, string>;
+  gameFactionIdByDbId: Map<string, FactionId>;
+  availableDbFactionNames: string[];
+};
+
+type ChampionMaps = {
+  dbChampionIdByGameId: Map<string, string>;
+  gameChampionIdByDbId: Map<string, string>;
+  availableDbChampionNames: string[];
+};
+
 type PersistedGameState = Pick<
   GameState,
   'activeFactionId' | 'championLevels' | 'resources' | 'unlockedFactionIds'
@@ -50,39 +62,138 @@ type PersistedGameState = Pick<
 
 const gameResourceIds: ResourceId[] = ['gold', 'iron', 'meat'];
 
-const factionNameAliases: Record<FactionId, string[]> = {
-  lizardman: ['lizardman', 'lizardmen'],
-  human: ['human', 'humen'],
-  elves: ['elves', 'elf'],
-};
-
-function normalizeFactionName(value: string) {
-  return value.trim().toLowerCase();
+function normalizeLookupValue(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+const factionNameAliases = factionDefinitions.reduce<Record<FactionId, string[]>>((aliases, faction) => {
+  const singularLabel = faction.label.endsWith('s') ? faction.label.slice(0, -1) : faction.label;
+  const lockedNameWithoutArticle = faction.lockedName.replace(/^the\s+/i, '');
+
+  aliases[faction.id] = [
+    faction.id,
+    faction.label,
+    singularLabel,
+    faction.lockedName,
+    lockedNameWithoutArticle,
+  ];
+
+  return aliases;
+}, {} as Record<FactionId, string[]>);
+
+const championNameAliases = championDefinitions.reduce<Record<string, string[]>>((aliases, champion) => {
+  aliases[champion.id] = [champion.id, champion.name];
+  return aliases;
+}, {});
+
 function toGameFactionId(name: string): FactionId | null {
-  const normalized = normalizeFactionName(name);
+  const normalized = normalizeLookupValue(name);
 
   const matched = (Object.keys(factionNameAliases) as FactionId[]).find((factionId) =>
-    factionNameAliases[factionId].some((alias) => alias === normalized),
+    factionNameAliases[factionId].some((alias) => normalizeLookupValue(alias) === normalized),
   );
 
   return matched ?? null;
 }
 
-function normalizeChampionName(value: string) {
-  return value.trim().toLowerCase();
-}
-
 function toGameChampionId(name: string): string | null {
-  const normalized = normalizeChampionName(name);
-  const matched = championDefinitions.find(
-    (champion) =>
-      normalizeChampionName(champion.id) === normalized ||
-      normalizeChampionName(champion.name) === normalized,
+  const normalized = normalizeLookupValue(name);
+  const matched = championDefinitions.find((champion) =>
+    championNameAliases[champion.id]?.some((alias) => normalizeLookupValue(alias) === normalized),
   );
 
   return matched?.id ?? null;
+}
+
+function getMissingFactionMappings(
+  dbFactionIdByGameId: Map<FactionId, string>,
+) {
+  return factionDefinitions
+    .map((faction) => faction.id)
+    .filter((factionId) => !dbFactionIdByGameId.has(factionId));
+}
+
+function getMissingChampionMappings(
+  dbChampionIdByGameId: Map<string, string>,
+) {
+  return championDefinitions
+    .map((champion) => champion.id)
+    .filter((championId) => !dbChampionIdByGameId.has(championId));
+}
+
+function assertLookupTablesAvailable(
+  factionMaps: FactionMaps,
+  championMaps: ChampionMaps,
+) {
+  const hasNoFactionRows = factionMaps.availableDbFactionNames.length === 0;
+  const hasNoChampionRows = championMaps.availableDbChampionNames.length === 0;
+
+  if (!hasNoFactionRows && !hasNoChampionRows) {
+    return;
+  }
+
+  const errors: string[] = [];
+
+  if (hasNoFactionRows) {
+    errors.push(
+      'Tabellen public.factions returnerede 0 rækker for den aktuelle session. ' +
+        'Det skyldes næsten altid enten manglende seed-data eller RLS/policies, der skjuler rækkerne.',
+    );
+  }
+
+  if (hasNoChampionRows) {
+    errors.push(
+      'Tabellen public.champions returnerede 0 rækker for den aktuelle session. ' +
+        'Det skyldes næsten altid enten manglende seed-data eller RLS/policies, der skjuler rækkerne.',
+    );
+  }
+
+  throw new Error(errors.join(' '));
+}
+
+function assertCompleteMappings(
+  factionMaps: FactionMaps,
+  championMaps: ChampionMaps,
+) {
+  assertLookupTablesAvailable(factionMaps, championMaps);
+
+  const missingFactionMappings = getMissingFactionMappings(factionMaps.dbFactionIdByGameId);
+  const missingChampionMappings = getMissingChampionMappings(championMaps.dbChampionIdByGameId);
+
+  if (!missingFactionMappings.length && !missingChampionMappings.length) {
+    return;
+  }
+
+  const errors: string[] = [];
+
+  if (missingFactionMappings.length) {
+    errors.push(`factions: ${missingFactionMappings.join(', ')}`);
+  }
+
+  if (missingChampionMappings.length) {
+    errors.push(`champions: ${missingChampionMappings.join(', ')}`);
+  }
+
+  const availableFactionNames = factionMaps.availableDbFactionNames.length
+    ? factionMaps.availableDbFactionNames.join(', ')
+    : '[ingen rækker fundet]';
+  const availableChampionNames = championMaps.availableDbChampionNames.length
+    ? championMaps.availableDbChampionNames.join(', ')
+    : '[ingen rækker fundet]';
+  const expectedFactionAliases = (Object.keys(factionNameAliases) as FactionId[])
+    .map((factionId) => `${factionId}: ${factionNameAliases[factionId].join('/')}`)
+    .join(' | ');
+  const expectedChampionAliases = championDefinitions
+    .map((champion) => `${champion.id}: ${championNameAliases[champion.id].join('/')}`)
+    .join(' | ');
+
+  throw new Error(
+    `Database mapping mangler for ${errors.join(' | ')}. ` +
+      `DB factions: ${availableFactionNames}. ` +
+      `DB champions: ${availableChampionNames}. ` +
+      `Forventede faction aliases: ${expectedFactionAliases}. ` +
+      `Forventede champion aliases: ${expectedChampionAliases}.`,
+  );
 }
 
 async function getFactionMaps() {
@@ -94,9 +205,11 @@ async function getFactionMaps() {
 
   const dbFactionIdByGameId = new Map<FactionId, string>();
   const gameFactionIdByDbId = new Map<string, FactionId>();
+  const availableDbFactionNames: string[] = [];
 
   (factionsResult.data as FactionRow[] | null)?.forEach((row) => {
     const name = row.name ?? '';
+    availableDbFactionNames.push(name || `[null] ${row.id}`);
     const gameFactionId = toGameFactionId(name);
 
     if (!gameFactionId) {
@@ -110,6 +223,7 @@ async function getFactionMaps() {
   return {
     dbFactionIdByGameId,
     gameFactionIdByDbId,
+    availableDbFactionNames,
   };
 }
 
@@ -122,9 +236,11 @@ async function getChampionMaps() {
 
   const dbChampionIdByGameId = new Map<string, string>();
   const gameChampionIdByDbId = new Map<string, string>();
+  const availableDbChampionNames: string[] = [];
 
   (championsResult.data as ChampionRow[] | null)?.forEach((row) => {
     const name = row.name ?? '';
+    availableDbChampionNames.push(name || `[null] ${row.id}`);
     const gameChampionId = toGameChampionId(name);
 
     if (!gameChampionId) {
@@ -138,6 +254,7 @@ async function getChampionMaps() {
   return {
     dbChampionIdByGameId,
     gameChampionIdByDbId,
+    availableDbChampionNames,
   };
 }
 
@@ -204,6 +321,8 @@ export async function loadGameProgress(profileId: string): Promise<PersistedGame
   if (championsResult.error) {
     throw new Error(`Kunne ikke hente champion-progress: ${championsResult.error.message}`);
   }
+
+  assertCompleteMappings(factionMaps, championMaps);
 
   const resources: GameState['resources'] = {
     clicks: 0,
@@ -273,6 +392,7 @@ export async function saveGameProgress(
   >,
 ): Promise<void> {
   const [factionMaps, championMaps] = await Promise.all([getFactionMaps(), getChampionMaps()]);
+  assertCompleteMappings(factionMaps, championMaps);
 
   const resourceRows = gameResourceIds.map((resourceId) => ({
     profile_id: profileId,

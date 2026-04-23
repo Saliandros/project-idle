@@ -6,6 +6,8 @@ import { factionDefinitions } from '../data/factions';
 import { GameState, ResourceId } from '../types/game';
 import { toRawResourceAmount } from '../utils/resources';
 
+// Zustand-storen samler spillets globale state og de actions,
+// som komponenterne bruger til at læse og opdatere state.
 type GameStore = GameState & {
   applyIdleTick: (seconds: number) => void;
   exchangeResource: (resourceId: ResourceId, amount: number) => boolean;
@@ -18,8 +20,10 @@ type GameStore = GameState & {
   setResource: (resourceId: ResourceId, value: number) => void;
 };
 
+// Hver champion-upgrade bliver dyrere med samme multiplier.
 const CHAMPION_COST_MULTIPLIER = 1.5;
 
+// Regner den aktuelle idle-produktion ud for en champion.
 function getChampionProductionPerSecond(championId: string, level: number) {
   const champion = championDefinitions.find((entry) => entry.id === championId);
 
@@ -35,6 +39,7 @@ function getChampionProductionPerSecond(championId: string, level: number) {
   };
 }
 
+// Bruges både ved første load og når state nulstilles ved logout.
 function createInitialState(): GameState {
   return {
     activeFactionId: 'lizardman',
@@ -65,6 +70,7 @@ export const useGameStore = create<GameStore>((set) => ({
       const nextResources = { ...state.resources };
       let hasProduction = false;
 
+      // Alle champions med level over 0 producerer automatisk ressourcer.
       Object.entries(state.championLevels).forEach(([championId, level]) => {
         const production = getChampionProductionPerSecond(championId, level);
 
@@ -92,6 +98,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
     set((state) => {
       const option = embassyResourceOptions.find((entry) => entry.id === resourceId);
+      // Input afrundes ned, så exchange altid sker i hele bundles.
       const safeAmount = Math.max(0, Math.floor(amount));
       const exchangeCount = option ? Math.floor(safeAmount / option.exchangeAmount) : 0;
       const resourceCost = option
@@ -121,6 +128,8 @@ export const useGameStore = create<GameStore>((set) => ({
 
     return didExchange;
   },
+  // Merge bruges her, så load fra database ikke overskriver felter,
+  // som ikke er med i payloaden.
   hydrateGameState: (nextState) =>
     set((state) => ({
       activeFactionId: nextState.activeFactionId ?? state.activeFactionId,
@@ -134,6 +143,7 @@ export const useGameStore = create<GameStore>((set) => ({
     })),
   performClick: () =>
     set((state) => {
+      // Click giver ressourcen fra den faction, der er aktiv lige nu.
       const activeFaction =
         factionDefinitions.find((faction) => faction.id === state.activeFactionId) ??
         factionDefinitions[0];
@@ -163,6 +173,7 @@ export const useGameStore = create<GameStore>((set) => ({
       );
       const nextCostRaw = toRawResourceAmount(champion.costResourceId, nextCost);
 
+      // Action returnerer false, hvis spilleren ikke har råd til næste level.
       if (state.resources[champion.costResourceId] < nextCostRaw) {
         return state;
       }
@@ -207,6 +218,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
       const unlockCostRaw = toRawResourceAmount('gold', faction.unlockCostGold);
 
+      // Unlock koster gold og tilføjer factionen til listen over unlocked factions.
       if (state.resources.gold < unlockCostRaw) {
         return state;
       }

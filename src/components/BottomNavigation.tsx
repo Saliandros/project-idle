@@ -10,9 +10,16 @@ import { theme } from '../theme/theme';
 type BottomNavigationProps = {
   route: AppRoute;
   onRouteChange: (route: AppRoute) => void;
+  autoSaveText?: string;
+  autoSaveTone?: 'normal' | 'error';
 };
 
-export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps) {
+export function BottomNavigation({
+  route,
+  onRouteChange,
+  autoSaveText,
+  autoSaveTone = 'normal',
+}: BottomNavigationProps) {
   const clickSoundUri = useRef<string | null>(null);
   const { width } = useWindowDimensions();
   const isHome = route === AppRoute.Home;
@@ -88,7 +95,16 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
 
   return (
     <SafeAreaView style={styles.navSafeArea}>
-      <View style={[styles.nav, { backgroundColor: theme.colors.navColor }]}>
+      <View style={[styles.container, { backgroundColor: theme.colors.navColor }]}>
+        {autoSaveText ? (
+          <View style={styles.autoSaveRow}>
+            <Text style={[styles.autoSaveText, autoSaveTone === 'error' && styles.autoSaveTextError]}>
+              {autoSaveText}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.nav}>
         <Pressable
           style={({ pressed }) => [styles.navButton, isHome && styles.navButtonActive, pressed && styles.navButtonPressed]}
           accessibilityRole="button"
@@ -117,6 +133,7 @@ export function BottomNavigation({ route, onRouteChange }: BottomNavigationProps
         >
           {renderNavContent('swap-horizontal', 'Embassy Exchange')}
         </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -129,14 +146,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  container: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255, 255, 255, 0.4)',
+    paddingTop: 6,
+  },
+  autoSaveRow: {
+    minHeight: 18,
+    paddingHorizontal: 12,
+    paddingBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  autoSaveText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  autoSaveTextError: {
+    color: theme.colors.feedbackError,
+  },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255, 255, 255, 0.4)',
   },
   navButton: {
     flex: 1,

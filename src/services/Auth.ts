@@ -70,7 +70,7 @@ async function ensureProfile(profileId: string, username: string): Promise<void>
 }
 
 async function ensureDefaultResources(profileId: string): Promise<void> {
-  const defaultTypes = ['gold', 'wood', 'iron'] as const;
+  const defaultTypes = ['gold', 'wood', 'iron', 'meat'] as const;
 
   const { data: existingRows, error: selectError } = await supabase
     .from('resources')

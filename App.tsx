@@ -15,6 +15,8 @@ import { loadGameProgress, saveGameProgress } from './src/services/gameProgress'
 import { useGameStore } from './src/store/useGameStore';
 import { TestUser } from './src/types';
 
+const AUTO_SAVE_INTERVAL_MS = 60000;
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TestUser | null>(null);
   const [isGameReady, setIsGameReady] = useState(false);
@@ -112,49 +114,84 @@ export default function App() {
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let isDisposed = false;
+    let isSaving = false;
+    let hasPendingChanges = false;
 
-    const unsubscribe = useGameStore.subscribe((state) => {
-      setAutoSaveState('pending');
+    const clearScheduledSave = () => {
+      if (!timeoutId) {
+        return;
+      }
 
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    };
+
+    const scheduleSave = () => {
+      if (timeoutId || isSaving || isDisposed) {
+        return;
       }
 
       timeoutId = setTimeout(() => {
-        setAutoSaveState('saving');
+        timeoutId = null;
+        void runSave();
+      }, AUTO_SAVE_INTERVAL_MS);
+    };
 
-        saveGameProgress(currentUser.id as string, {
+    const runSave = async () => {
+      if (isSaving || isDisposed || !hasPendingChanges) {
+        return;
+      }
+
+      isSaving = true;
+      hasPendingChanges = false;
+      setAutoSaveState('saving');
+
+      const state = useGameStore.getState();
+
+      try {
+        await saveGameProgress(currentUser.id as string, {
           activeFactionId: state.activeFactionId,
           championLevels: state.championLevels,
           resources: state.resources,
           unlockedFactionIds: state.unlockedFactionIds,
-        })
-          .then(() => {
-            if (isDisposed) {
-              return;
-            }
+        });
 
-            setLastAutoSavedAt(new Date());
-            setAutoSaveState('saved');
-          })
-          .catch((error) => {
-            if (isDisposed) {
-              return;
-            }
+        if (isDisposed) {
+          return;
+        }
 
-            setAutoSaveState('error');
-            console.log('Game progress save error:', error);
-          });
-      }, 750);
+        setLastAutoSavedAt(new Date());
+        setAutoSaveState('saved');
+      } catch (error) {
+        if (isDisposed) {
+          return;
+        }
+
+        hasPendingChanges = true;
+        setAutoSaveState('error');
+        console.log('Game progress save error:', error);
+      } finally {
+        isSaving = false;
+
+        if (hasPendingChanges && !isDisposed) {
+          scheduleSave();
+        }
+      }
+    };
+
+    const unsubscribe = useGameStore.subscribe(() => {
+      hasPendingChanges = true;
+
+      if (!isSaving) {
+        setAutoSaveState('pending');
+      }
+
+      scheduleSave();
     });
 
     return () => {
       isDisposed = true;
-
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-
+      clearScheduledSave();
       unsubscribe();
     };
   }, [currentUser, isGameReady]);

@@ -4,8 +4,11 @@ import { theme } from '../theme/theme';
 
 type GameMessageModalProps = {
   actionLabel?: string;
+  actionDisabled?: boolean;
   message: string;
   onClose: () => void;
+  onSecondaryAction?: () => void;
+  secondaryActionLabel?: string;
   subtext?: string;
   title: string;
   visible: boolean;
@@ -15,8 +18,11 @@ const isWeb = Platform.OS === 'web';
 
 export function GameMessageModal({
   actionLabel = 'UNDERSTOOD',
+  actionDisabled = false,
   message,
   onClose,
+  onSecondaryAction,
+  secondaryActionLabel,
   subtext,
   title,
   visible,
@@ -33,9 +39,25 @@ export function GameMessageModal({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           {subtext ? <Text style={styles.subtext}>{subtext}</Text> : null}
-          <TouchableOpacity style={styles.button} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.buttonText}>{actionLabel}</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            {onSecondaryAction && secondaryActionLabel ? (
+              <TouchableOpacity
+                style={[styles.button, styles.secondaryButton]}
+                onPress={onSecondaryAction}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>{secondaryActionLabel}</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.button, actionDisabled && styles.buttonDisabled]}
+              onPress={onClose}
+              activeOpacity={0.8}
+              disabled={actionDisabled}
+            >
+              <Text style={styles.buttonText}>{actionLabel}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -102,6 +124,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   buttonText: {
     color: '#FFFFFF',

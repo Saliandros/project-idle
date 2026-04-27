@@ -40,7 +40,7 @@ function getChampionProductionPerSecond(championId: string, level: number) {
 }
 
 // Bruges både ved første load og når state nulstilles ved logout.
-function createInitialState(): GameState {
+export function createInitialGameState(): GameState {
   return {
     activeFactionId: 'lizardman',
     unlockedFactionIds: ['lizardman'],
@@ -57,7 +57,7 @@ function createInitialState(): GameState {
   };
 }
 
-const initialState = createInitialState();
+const initialState = createInitialGameState();
 
 export const useGameStore = create<GameStore>((set) => ({
   ...initialState,
@@ -205,7 +205,7 @@ export const useGameStore = create<GameStore>((set) => ({
         [resourceId]: toRawResourceAmount(resourceId, value),
       },
     })),
-  resetGameState: () => set(() => createInitialState()),
+  resetGameState: () => set(() => createInitialGameState()),
   unlockFaction: (factionId) => {
     let didUnlock = false;
 

@@ -7,6 +7,7 @@ type FrontpageHeaderProps = {
   activeFactionLabel: string;
   isWeb: boolean;
   onOpenFactionPicker: () => void;
+  onResetGame: () => void;
   primaryResourceAmount: number;
   goldAmount: number;
 };
@@ -15,6 +16,7 @@ export function FrontpageHeader({
   activeFactionLabel,
   isWeb,
   onOpenFactionPicker,
+  onResetGame,
   primaryResourceAmount,
   goldAmount,
 }: FrontpageHeaderProps) {
@@ -51,6 +53,13 @@ export function FrontpageHeader({
             style={styles.resourceIcon}
           />
         </View>
+        <TouchableOpacity
+          style={styles.resetButton}
+          activeOpacity={0.85}
+          onPress={onResetGame}
+        >
+          <Text style={styles.resetButtonText}>Reset Progress</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -123,5 +132,22 @@ const styles = StyleSheet.create({
   },
   resourceValueWeb: {
     fontSize: 18,
+  },
+  resetButton: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "rgba(139, 0, 0, 0.82)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.45)",
+    borderRadius: 8,
+  },
+  resetButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });

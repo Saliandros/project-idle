@@ -12,9 +12,11 @@ import { GameMessageModal } from "../components/GameMessageModal";
 import { FrontpageClicker } from "../components/frontpage/FrontpageClicker";
 import { FrontpageHeader } from "../components/frontpage/FrontpageHeader";
 import { FrontpageSidebar } from "../components/frontpage/FrontpageSidebar";
+import { useAuth } from "../context/AuthContext";
 import { useBottomNavInset } from "../context/BottomNavInsetContext";
 import { embassyUnlockOrder } from "../data/embassy";
 import { factionDefinitions } from "../data/factions";
+import { resetGameProgress } from "../services/gameProgress";
 import { useGameStore } from "../store/useGameStore";
 import { theme } from "../theme/theme";
 import { FactionDefinition } from "../types/game";
@@ -33,14 +35,21 @@ export function Frontpage() {
   const [lockedFactionName, setLockedFactionName] = useState("");
   const [lockedModalMessage, setLockedModalMessage] = useState("");
   const [lockedModalSubtext, setLockedModalSubtext] = useState("");
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+  const [showResetResultModal, setShowResetResultModal] = useState(false);
+  const [resetResultMessage, setResetResultMessage] = useState("");
+  const [resetResultSubtext, setResetResultSubtext] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
   const { width } = useWindowDimensions();
   const { bottomNavHeight } = useBottomNavInset();
+  const { currentUser } = useAuth();
   const isDesktopWeb = Platform.OS === "web" && width >= 1024;
   const gold = useGameStore((state) => state.resources.gold);
   const performClick = useGameStore((state) => state.performClick);
   const activeFactionId = useGameStore((state) => state.activeFactionId);
   const unlockedFactionIds = useGameStore((state) => state.unlockedFactionIds);
   const setActiveFaction = useGameStore((state) => state.setActiveFaction);
+  const resetGameState = useGameStore((state) => state.resetGameState);
   const unlockFaction = useGameStore((state) => state.unlockFaction);
   const activeFaction =
     factionDefinitions.find((entry) => entry.id === activeFactionId) ??
@@ -115,6 +124,33 @@ export function Frontpage() {
     }
   };
 
+  const handleResetGame = async () => {
+    const profileId = typeof currentUser?.id === "string" ? currentUser.id : null;
+
+    if (!profileId || isResetting) {
+      return;
+    }
+
+    setIsResetting(true);
+
+    try {
+      resetGameState();
+      await resetGameProgress(profileId);
+      setShowResetConfirmModal(false);
+      setResetResultMessage("Your game has been reset.");
+      setResetResultSubtext("You are back at the starting faction with starting resources.");
+      setShowResetResultModal(true);
+    } catch (error) {
+      setResetResultMessage("Reset failed.");
+      setResetResultSubtext(
+        error instanceof Error ? error.message : "Could not reset your saved progress.",
+      );
+      setShowResetResultModal(true);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <ImageBackground
       source={require("../../assets/images/Factions/Lizardman/Shattered Isles Map.png")}
@@ -135,6 +171,7 @@ export function Frontpage() {
               activeFactionLabel={activeFaction.label}
               isWeb={isWeb}
               onOpenFactionPicker={() => setShowFactionPicker(true)}
+              onResetGame={() => setShowResetConfirmModal(true)}
               primaryResourceAmount={primaryResourceAmount}
               goldAmount={goldAmount}
             />
@@ -172,6 +209,28 @@ export function Frontpage() {
         message={lockedModalMessage}
         subtext={lockedModalSubtext}
         onClose={() => setShowLockedModal(false)}
+      />
+
+      <GameMessageModal
+        visible={showResetConfirmModal}
+        title="RESET GAME"
+        message="Start the game over from the beginning?"
+        subtext="This will overwrite your current progress for this account."
+        actionLabel={isResetting ? "RESETTING..." : "RESET"}
+        actionDisabled={isResetting}
+        onClose={() => {
+          void handleResetGame();
+        }}
+        onSecondaryAction={() => setShowResetConfirmModal(false)}
+        secondaryActionLabel="CANCEL"
+      />
+
+      <GameMessageModal
+        visible={showResetResultModal}
+        title="RESET STATUS"
+        message={resetResultMessage}
+        subtext={resetResultSubtext}
+        onClose={() => setShowResetResultModal(false)}
       />
     </ImageBackground>
   );

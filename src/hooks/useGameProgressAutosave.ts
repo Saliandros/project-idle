@@ -59,6 +59,7 @@ function getAutoSaveLabel(
 
 export function useGameProgressAutosave(currentUser: TestUser | null, isGameReady: boolean) {
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>('idle');
+  const [autoSaveErrorMessage, setAutoSaveErrorMessage] = useState<string | null>(null);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
   const currentUserRef = useRef(currentUser);
   const isGameReadyRef = useRef(isGameReady);
@@ -106,6 +107,7 @@ export function useGameProgressAutosave(currentUser: TestUser | null, isGameRead
           return;
         }
 
+        setAutoSaveErrorMessage(null);
         setLastAutoSavedAt(new Date());
         setAutoSaveState('saved');
       } catch (error) {
@@ -114,6 +116,9 @@ export function useGameProgressAutosave(currentUser: TestUser | null, isGameRead
         }
 
         setAutoSaveState('error');
+        setAutoSaveErrorMessage(
+          error instanceof Error ? error.message : 'Could not sync progress to backend.',
+        );
         console.log('Game progress save error:', error);
       } finally {
         isSaving = false;
@@ -175,10 +180,12 @@ export function useGameProgressAutosave(currentUser: TestUser | null, isGameRead
     }
 
     setAutoSaveState('idle');
+    setAutoSaveErrorMessage(null);
     setLastAutoSavedAt(null);
   }, [currentUser]);
 
   return {
+    autoSaveErrorMessage,
     autoSaveLabel: getAutoSaveLabel(currentUser, isGameReady, autoSaveState, lastAutoSavedAt),
     autoSaveTone: autoSaveState === 'error' ? ('error' as const) : ('normal' as const),
   };

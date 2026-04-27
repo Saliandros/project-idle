@@ -8,6 +8,7 @@ type FrontpageHeaderProps = {
   isWeb: boolean;
   onOpenFactionPicker: () => void;
   onResetGame: () => void;
+  onLogout: () => void;
   primaryResourceAmount: number;
   goldAmount: number;
 };
@@ -17,6 +18,7 @@ export function FrontpageHeader({
   isWeb,
   onOpenFactionPicker,
   onResetGame,
+  onLogout,
   primaryResourceAmount,
   goldAmount,
 }: FrontpageHeaderProps) {
@@ -59,6 +61,13 @@ export function FrontpageHeader({
           onPress={onResetGame}
         >
           <Text style={styles.resetButtonText}>Reset Progress</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.85}
+          onPress={onLogout}
+        >
+          <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -144,6 +153,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   resetButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  logoutButton: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.35)",
+    borderRadius: 8,
+  },
+  logoutButtonText: {
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "800",

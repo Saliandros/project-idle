@@ -1,7 +1,9 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
+  Animated,
   ImageBackground,
+  PanResponder,
   Platform,
   StyleSheet,
   View,
@@ -31,6 +33,69 @@ export function StrongholdHub() {
   const setActiveFaction = useGameStore((state) => state.setActiveFaction);
   const unlockFaction = useGameStore((state) => state.unlockFaction);
   const goldAmount = fromRawResourceAmount("gold", gold);
+  const activeTabRef = useRef<FactionTab>(activeTab);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  activeTabRef.current = activeTab;
+
+  const animateTabChange = (
+    nextTab: FactionTab,
+    direction: "left" | "right" = "left",
+  ) => {
+    if (activeTabRef.current === nextTab) {
+      return;
+    }
+
+    const startOffset = direction === "left" ? 28 : -28;
+    slideAnim.setValue(startOffset);
+    fadeAnim.setValue(0.2);
+    setActiveTab(nextTab);
+
+    Animated.parallel([
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        damping: 16,
+        stiffness: 180,
+        mass: 0.9,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleSwipeTabChange = (direction: "left" | "right") => {
+    if (direction === "left" && activeTabRef.current === "champions") {
+      animateTabChange("unlocks", "left");
+      return;
+    }
+
+    if (direction === "right" && activeTabRef.current === "unlocks") {
+      animateTabChange("champions", "right");
+    }
+  };
+
+  const mobileSwipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Platform.OS !== "web" &&
+        Math.abs(gestureState.dx) > 18 &&
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.35,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx <= -48) {
+          handleSwipeTabChange("left");
+          return;
+        }
+
+        if (gestureState.dx >= 48) {
+          handleSwipeTabChange("right");
+        }
+      },
+    }),
+  ).current;
 
   const unlockRows = useMemo(
     () =>
@@ -97,24 +162,35 @@ export function StrongholdHub() {
     >
       <View style={styles.overlay}>
         <StrongholdHubHeader goldAmount={goldAmount} isWeb={isWeb} />
-        <StrongholdHubTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <StrongholdHubTabs activeTab={activeTab} onTabChange={animateTabChange} />
 
-        {activeTab === "champions" ? (
-          <StrongholdFactionList
-            activeFactionId={activeFactionId}
-            factions={factionDefinitions}
-            isWeb={isWeb}
-            onFactionPress={handleFactionPress}
-            unlockedFactionIds={unlockedFactionIds}
-          />
-        ) : (
-          <StrongholdUnlockList
-            factions={unlockRows}
-            isWeb={isWeb}
-            onUnlockPress={handleUnlockPress}
-            unlockedFactionIds={unlockedFactionIds}
-          />
-        )}
+        <Animated.View
+          style={[
+            styles.contentArea,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateX: slideAnim }],
+            },
+          ]}
+          {...(!isWeb ? mobileSwipeResponder.panHandlers : {})}
+        >
+          {activeTab === "champions" ? (
+            <StrongholdFactionList
+              activeFactionId={activeFactionId}
+              factions={factionDefinitions}
+              isWeb={isWeb}
+              onFactionPress={handleFactionPress}
+              unlockedFactionIds={unlockedFactionIds}
+            />
+          ) : (
+            <StrongholdUnlockList
+              factions={unlockRows}
+              isWeb={isWeb}
+              onUnlockPress={handleUnlockPress}
+              unlockedFactionIds={unlockedFactionIds}
+            />
+          )}
+        </Animated.View>
 
         <GameMessageModal
           visible={showLockedModal}
@@ -142,5 +218,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.28)",
     paddingTop: isWeb ? 20 : 50,
+  },
+  contentArea: {
+    flex: 1,
   },
 });

@@ -12,6 +12,7 @@ export type BottomNavigationRoute = 'index' | 'stronghold-hub' | 'embassy-exchan
 type BottomNavigationProps = {
   route: BottomNavigationRoute;
   onRouteChange: (route: BottomNavigationRoute) => void;
+  autoSaveErrorMessage?: string | null;
   autoSaveText?: string;
   autoSaveTone?: 'normal' | 'error';
 };
@@ -19,6 +20,7 @@ type BottomNavigationProps = {
 export function BottomNavigation({
   route,
   onRouteChange,
+  autoSaveErrorMessage,
   autoSaveText,
   autoSaveTone = 'normal',
 }: BottomNavigationProps) {
@@ -108,6 +110,9 @@ export function BottomNavigation({
             <Text style={[styles.autoSaveText, autoSaveTone === 'error' && styles.autoSaveTextError]}>
               {autoSaveText}
             </Text>
+            {autoSaveTone === 'error' && autoSaveErrorMessage ? (
+              <Text style={styles.autoSaveErrorDetail}>{autoSaveErrorMessage}</Text>
+            ) : null}
           </View>
         ) : null}
 
@@ -172,6 +177,13 @@ const styles = StyleSheet.create({
   },
   autoSaveTextError: {
     color: theme.colors.feedbackError,
+  },
+  autoSaveErrorDetail: {
+    marginTop: 2,
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   nav: {
     flexDirection: 'row',

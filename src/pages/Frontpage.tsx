@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { useBottomNavInset } from "../context/BottomNavInsetContext";
 import { embassyUnlockOrder } from "../data/embassy";
 import { factionDefinitions } from "../data/factions";
+import { logoutUser } from "../services/Auth";
 import { resetGameProgress } from "../services/gameProgress";
 import { useGameStore } from "../store/useGameStore";
 import { theme } from "../theme/theme";
@@ -40,9 +41,11 @@ export function Frontpage() {
   const [resetResultMessage, setResetResultMessage] = useState("");
   const [resetResultSubtext, setResetResultSubtext] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [showLogoutErrorModal, setShowLogoutErrorModal] = useState(false);
+  const [logoutErrorMessage, setLogoutErrorMessage] = useState("");
   const { width } = useWindowDimensions();
   const { bottomNavHeight } = useBottomNavInset();
-  const { currentUser } = useAuth();
+  const { currentUser, setCurrentUser } = useAuth();
   const isDesktopWeb = Platform.OS === "web" && width >= 1024;
   const gold = useGameStore((state) => state.resources.gold);
   const performClick = useGameStore((state) => state.performClick);
@@ -151,6 +154,18 @@ export function Frontpage() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+    } catch (error) {
+      setLogoutErrorMessage(
+        error instanceof Error ? error.message : "Could not log out of the current session.",
+      );
+      setShowLogoutErrorModal(true);
+    }
+  };
+
   return (
     <ImageBackground
       source={require("../../assets/images/Factions/Lizardman/Shattered Isles Map.png")}
@@ -171,6 +186,9 @@ export function Frontpage() {
               activeFactionLabel={activeFaction.label}
               isWeb={isWeb}
               onOpenFactionPicker={() => setShowFactionPicker(true)}
+              onLogout={() => {
+                void handleLogout();
+              }}
               onResetGame={() => setShowResetConfirmModal(true)}
               primaryResourceAmount={primaryResourceAmount}
               goldAmount={goldAmount}
@@ -231,6 +249,14 @@ export function Frontpage() {
         message={resetResultMessage}
         subtext={resetResultSubtext}
         onClose={() => setShowResetResultModal(false)}
+      />
+
+      <GameMessageModal
+        visible={showLogoutErrorModal}
+        title="LOGOUT FAILED"
+        message="Could not log out."
+        subtext={logoutErrorMessage}
+        onClose={() => setShowLogoutErrorModal(false)}
       />
     </ImageBackground>
   );

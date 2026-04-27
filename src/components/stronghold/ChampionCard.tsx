@@ -1,6 +1,6 @@
 import { Image, ImageBackground, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { ChampionDefinition, ResourceState } from "../../types/game";
+import { ChampionDefinition, ResourceId, ResourceState } from "../../types/game";
 import { formatDisplayNumber } from "../../utils/formatNumber";
 import { toRawResourceAmount } from "../../utils/resources";
 import { theme } from "../../theme/theme";
@@ -14,6 +14,11 @@ type ChampionCardProps = {
 
 const isWeb = Platform.OS === "web";
 const COST_MULTIPLIER = 1.5;
+const resourceIcons: Partial<Record<ResourceId, number>> = {
+  gold: require("../../../assets/images/General/coin.png"),
+  iron: require("../../../assets/images/General/coin.png"),
+  meat: require("../../../assets/images/General/meat.png"),
+};
 
 export function ChampionCard({
   champion,
@@ -30,21 +35,19 @@ export function ChampionCard({
   const canUpgrade =
     resources[champion.costResourceId] >=
     toRawResourceAmount(champion.costResourceId, nextCost);
+  const costIcon =
+    resourceIcons[champion.costResourceId] ??
+    require("../../../assets/images/General/coin.png");
 
   const previewContent = (
     <View style={styles.previewOverlay}>
       <Text style={styles.championName}>{champion.name}</Text>
       <View style={styles.statStack}>
         <View style={styles.statRow}>
-          <Text style={styles.statLabel}>Idle</Text>
-          <Text style={styles.statValue}>{formatDisplayNumber(productionPerSecond)}/sec</Text>
-        </View>
-        <View style={styles.priceRow}>
-          <Image
-            source={require("../../../assets/images/General/meat.png")}
-            style={styles.meatIcon}
-          />
-          <Text style={styles.championPrice}>{nextCost}</Text>
+          <Text style={styles.statLabel}>Idle:</Text>
+          <Text style={styles.statValue}>
+            {formatDisplayNumber(productionPerSecond)}/sec
+          </Text>
         </View>
       </View>
     </View>
@@ -77,6 +80,10 @@ export function ChampionCard({
             disabled={!canUpgrade}
           >
             <Text style={styles.levelUpButtonText}>Level Up</Text>
+            <View style={styles.levelUpCostRow}>
+              <Image source={costIcon} style={styles.costIcon} />
+              <Text style={styles.levelUpCostText}>{nextCost}</Text>
+            </View>
           </Pressable>
         </View>
       </View>
@@ -122,11 +129,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
   },
-  championPrice: {
-    fontSize: isWeb ? 14 : 13,
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
   statStack: {
     gap: 6,
   },
@@ -135,29 +137,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-    borderWidth: 1,
-    borderColor: "rgba(233, 215, 172, 0.28)",
   },
   statLabel: {
-    color: "rgba(233, 215, 172, 0.78)",
-    fontSize: 11,
+    color: "rgba(233, 215, 172, 0.88)",
+    fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.7,
     textTransform: "uppercase",
   },
   statValue: {
     color: "#FFFFFF",
-    fontSize: isWeb ? 13 : 12,
+    fontSize: isWeb ? 14 : 13,
     fontWeight: "800",
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flexWrap: "wrap",
   },
   actionBar: {
     paddingHorizontal: 10,
@@ -166,15 +157,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.16)",
   },
-  meatIcon: {
-    width: 16,
-    height: 16,
-  },
   levelUpButton: {
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
     backgroundColor: "rgba(226, 212, 178, 0.98)",
     borderWidth: 2,
     borderTopColor: "#FFF2C6",
@@ -194,6 +182,20 @@ const styles = StyleSheet.create({
     color: "#2C1D0C",
     textTransform: "uppercase",
     letterSpacing: 0.4,
+  },
+  levelUpCostRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  costIcon: {
+    width: 14,
+    height: 14,
+  },
+  levelUpCostText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#2C1D0C",
   },
   levelCol: {
     width: 95,

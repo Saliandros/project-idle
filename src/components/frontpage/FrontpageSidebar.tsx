@@ -1,4 +1,4 @@
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { FactionDefinition } from "../../types/game";
 import { formatDisplayNumber } from "../../utils/formatNumber";
@@ -7,6 +7,7 @@ type DesktopFactionTab = "champions" | "unlocks";
 
 type FrontpageSidebarProps = {
   activeFactionId: FactionDefinition["id"];
+  bottomInset: number;
   desktopFactionTab: DesktopFactionTab;
   goldAmount: number;
   onFactionPress: (entry: FactionDefinition) => void;
@@ -20,6 +21,7 @@ const isWeb = Platform.OS === "web";
 
 export function FrontpageSidebar({
   activeFactionId,
+  bottomInset,
   desktopFactionTab,
   goldAmount,
   onFactionPress,
@@ -29,7 +31,7 @@ export function FrontpageSidebar({
   unlockedFactionIds,
 }: FrontpageSidebarProps) {
   return (
-    <View style={styles.sidePanel}>
+    <View style={[styles.sidePanel, { paddingBottom: Math.max(bottomInset + 16, 24) }]}>
       <View style={styles.sidePanelHeader}>
         <Text style={styles.sidePanelTitle}>Stronghold</Text>
         <View style={styles.sidePanelGoldWrap}>
@@ -64,7 +66,11 @@ export function FrontpageSidebar({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.sidePanelList}>
+      <ScrollView
+        style={styles.sidePanelList}
+        contentContainerStyle={styles.sidePanelListContent}
+        showsVerticalScrollIndicator={false}
+      >
         {desktopFactionTab === "champions"
           ? rows.map((entry) => {
               const isUnlocked = unlockedFactionIds.includes(entry.id);
@@ -128,7 +134,7 @@ export function FrontpageSidebar({
                   </TouchableOpacity>
                 );
               })}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -137,6 +143,7 @@ const styles = StyleSheet.create({
   sidePanel: {
     width: 320,
     alignSelf: "stretch",
+    minHeight: 0,
     paddingTop: 20,
     justifyContent: "flex-start",
     backgroundColor: "rgba(6, 18, 14, 0.74)",
@@ -198,6 +205,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   sidePanelList: {
+    flex: 1,
+    minHeight: 0,
+  },
+  sidePanelListContent: {
     gap: 0,
   },
   sidePanelRow: {

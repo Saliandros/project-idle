@@ -12,6 +12,7 @@ import { GameMessageModal } from "../components/GameMessageModal";
 import { FrontpageClicker } from "../components/frontpage/FrontpageClicker";
 import { FrontpageHeader } from "../components/frontpage/FrontpageHeader";
 import { FrontpageSidebar } from "../components/frontpage/FrontpageSidebar";
+import { useBottomNavInset } from "../context/BottomNavInsetContext";
 import { embassyUnlockOrder } from "../data/embassy";
 import { factionDefinitions } from "../data/factions";
 import { useGameStore } from "../store/useGameStore";
@@ -30,7 +31,10 @@ export function Frontpage() {
   const [desktopFactionTab, setDesktopFactionTab] =
     useState<DesktopFactionTab>("champions");
   const [lockedFactionName, setLockedFactionName] = useState("");
+  const [lockedModalMessage, setLockedModalMessage] = useState("");
+  const [lockedModalSubtext, setLockedModalSubtext] = useState("");
   const { width } = useWindowDimensions();
+  const { bottomNavHeight } = useBottomNavInset();
   const isDesktopWeb = Platform.OS === "web" && width >= 1024;
   const gold = useGameStore((state) => state.resources.gold);
   const performClick = useGameStore((state) => state.performClick);
@@ -65,6 +69,10 @@ export function Frontpage() {
 
     setShowFactionPicker(false);
     setLockedFactionName(entry.lockedName);
+    setLockedModalMessage(`${entry.lockedName} Faction is still Locked`);
+    setLockedModalSubtext(
+      `Raise your standing with ${entry.lockedName} to be able to purchase "unlock"`,
+    );
     setShowLockedModal(true);
   };
 
@@ -85,6 +93,10 @@ export function Frontpage() {
     }
 
     setLockedFactionName(entry.lockedName);
+    setLockedModalMessage(`${entry.lockedName} Faction is still Locked`);
+    setLockedModalSubtext(
+      `Raise your standing with ${entry.lockedName} to be able to purchase "unlock"`,
+    );
     setShowLockedModal(true);
   };
 
@@ -97,6 +109,8 @@ export function Frontpage() {
 
     if (!didUnlock) {
       setLockedFactionName(entry.lockedName);
+      setLockedModalMessage(`${entry.lockedName} are still Locked`);
+      setLockedModalSubtext(`You need more gold to unlock ${entry.lockedName}`);
       setShowLockedModal(true);
     }
   };
@@ -109,7 +123,13 @@ export function Frontpage() {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <View style={[styles.shell, isDesktopWeb && styles.shellDesktop]}>
+        <View
+          style={[
+            styles.shell,
+            isDesktopWeb && styles.shellDesktop,
+            isDesktopWeb && { paddingBottom: Math.max(bottomNavHeight, 96) },
+          ]}
+        >
           <View style={styles.mainColumn}>
             <FrontpageHeader
               activeFactionLabel={activeFaction.label}
@@ -124,6 +144,7 @@ export function Frontpage() {
           {isDesktopWeb ? (
             <FrontpageSidebar
               activeFactionId={activeFactionId}
+              bottomInset={bottomNavHeight}
               desktopFactionTab={desktopFactionTab}
               goldAmount={goldAmount}
               onFactionPress={handleFactionPress}
@@ -148,8 +169,8 @@ export function Frontpage() {
       <GameMessageModal
         visible={showLockedModal}
         title="FACTION LOCKED"
-        message={`${lockedFactionName} Faction is still Locked`}
-        subtext={`Raise your standing with ${lockedFactionName} to be able to purchase "unlock"`}
+        message={lockedModalMessage}
+        subtext={lockedModalSubtext}
         onClose={() => setShowLockedModal(false)}
       />
     </ImageBackground>

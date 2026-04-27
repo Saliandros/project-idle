@@ -10,6 +10,7 @@ import { GameMessageModal } from "../components/GameMessageModal";
 import { EmbassyInvoiceSummary } from "../components/embassy/EmbassyInvoiceSummary";
 import { EmbassyResourceSelector } from "../components/embassy/EmbassyResourceSelector";
 import { EmbassyTradeControls } from "../components/embassy/EmbassyTradeControls";
+import { useBottomNavInset } from "../context/BottomNavInsetContext";
 
 import { embassyResourceOptions } from "../data/embassy";
 import { useGameStore } from "../store/useGameStore";
@@ -33,6 +34,7 @@ export function EmbassyExchange() {
     Partial<Record<ResourceId, string>>
   >({});
   const [showTradeErrorModal, setShowTradeErrorModal] = useState(false);
+  const { bottomNavHeight } = useBottomNavInset();
   const resources = useGameStore((state) => state.resources);
   const exchangeResource = useGameStore((state) => state.exchangeResource);
 
@@ -127,7 +129,12 @@ export function EmbassyExchange() {
             resizeMode="cover"
           >
             <View style={styles.exchangePanelOverlay} />
-            <View style={styles.exchangePanelContent}>
+            <View
+              style={[
+                styles.exchangePanelContent,
+                { paddingBottom: Math.max(bottomNavHeight + 16, 96) },
+              ]}
+            >
               <EmbassyResourceSelector
                 isDropdownOpen={isDropdownOpen}
                 onSelectResource={handleSelectResource}
@@ -199,8 +206,8 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   mainContentWeb: {
     paddingHorizontal: 0,
@@ -224,6 +231,5 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 28,
   },
 });

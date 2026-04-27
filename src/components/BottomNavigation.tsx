@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Asset } from 'expo-asset';
 import { useEffect, useRef } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useBottomNavInset } from '../context/BottomNavInsetContext';
 import { theme } from '../theme/theme';
 
 export type BottomNavigationRoute = 'index' | 'stronghold-hub' | 'embassy-exchange';
@@ -23,6 +24,7 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const clickSoundUri = useRef<string | null>(null);
   const { width } = useWindowDimensions();
+  const { setBottomNavHeight } = useBottomNavInset();
   const isHome = route === 'index';
   const isStrongholdHub = route === 'stronghold-hub';
   const isEmbassyExchange = route === 'embassy-exchange';
@@ -87,6 +89,10 @@ export function BottomNavigation({
     onRouteChange(nextRoute);
   };
 
+  const handleLayout = (event: LayoutChangeEvent) => {
+    setBottomNavHeight(event.nativeEvent.layout.height);
+  };
+
   const renderNavContent = (icon: keyof typeof Ionicons.glyphMap, label: string) => (
     <View style={[styles.navButtonContent, isDesktopWeb && styles.navButtonContentDesktop]}>
       <Ionicons name={icon} size={28} color={theme.colors.textPrimary} />
@@ -95,7 +101,7 @@ export function BottomNavigation({
   );
 
   return (
-    <SafeAreaView style={styles.navSafeArea}>
+    <SafeAreaView style={styles.navSafeArea} onLayout={handleLayout}>
       <View style={[styles.container, { backgroundColor: theme.colors.navColor }]}>
         {autoSaveText ? (
           <View style={styles.autoSaveRow}>

@@ -2,6 +2,7 @@
   "expo": {
     "name": "project-idle",
     "slug": "project-idle",
+    "scheme": "projectidle",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -16,7 +17,8 @@
           "behavior": "inset-swipe",
           "backgroundColor": "#000000"
         }
-      ]
+      ],
+      "expo-router"
     ]
   }
 }

@@ -8,6 +8,17 @@ function normalizeLookupValue(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+const legacyFactionAliases: Record<FactionId, string[]> = {
+  lizardman: ['Lizardmen', 'Lizardman', 'The Lizardmen'],
+  human: ['Humen', 'Human', 'Humans', 'The Humen', 'The Humans'],
+  elves: ['Elves', 'Elve', 'The Elves'],
+};
+
+const legacyChampionAliases: Record<string, string[]> = {
+  saliandros: ['Saliandros'],
+  kroxigar: ['Kroxigar'],
+};
+
 const factionNameAliases = factionDefinitions.reduce<Record<FactionId, string[]>>((aliases, faction) => {
   const singularLabel = faction.label.endsWith('s') ? faction.label.slice(0, -1) : faction.label;
   const lockedNameWithoutArticle = faction.lockedName.replace(/^the\s+/i, '');
@@ -18,13 +29,14 @@ const factionNameAliases = factionDefinitions.reduce<Record<FactionId, string[]>
     singularLabel,
     faction.lockedName,
     lockedNameWithoutArticle,
+    ...(legacyFactionAliases[faction.id] ?? []),
   ];
 
   return aliases;
 }, {} as Record<FactionId, string[]>);
 
 const championNameAliases = championDefinitions.reduce<Record<string, string[]>>((aliases, champion) => {
-  aliases[champion.id] = [champion.id, champion.name];
+  aliases[champion.id] = [champion.id, champion.name, ...(legacyChampionAliases[champion.id] ?? [])];
   return aliases;
 }, {});
 

@@ -1,4 +1,3 @@
-import { AppRoute } from '../constants/routes';
 import { FactionDefinition } from '../types/game';
 
 export const factionDefinitions: FactionDefinition[] = [
@@ -9,14 +8,14 @@ export const factionDefinitions: FactionDefinition[] = [
     clickValue: 1,
     lockedName: 'The Lizardmen',
     unlockCostGold: 0,
-    route: AppRoute.Stronghold,
+    route: '/(tabs)/stronghold',
   },
   {
     id: 'human',
-    label: 'Humen',
+    label: 'Humans',
     clickResourceId: 'clicks',
     clickValue: 1,
-    lockedName: 'The Humen',
+    lockedName: 'The Humans',
     unlockCostGold: 5,
     route: null,
   },

@@ -1,27 +1,21 @@
 import { useMemo, useState } from "react";
-import Slider from "@react-native-community/slider";
 import {
-  Image,
   ImageBackground,
-  Modal,
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { GameMessageModal } from "../components/GameMessageModal";
+import { EmbassyInvoiceSummary } from "../components/embassy/EmbassyInvoiceSummary";
+import { EmbassyResourceSelector } from "../components/embassy/EmbassyResourceSelector";
+import { EmbassyTradeControls } from "../components/embassy/EmbassyTradeControls";
 
-import { AppRoute } from "../constants/routes";
 import { embassyResourceOptions } from "../data/embassy";
 import { useGameStore } from "../store/useGameStore";
 import { theme } from "../theme/theme";
 import { ResourceId } from "../types/game";
-import { formatDisplayNumber } from "../utils/formatNumber";
 import { fromRawResourceAmount } from "../utils/resources";
-
-type EmbassyExchangeProps = {
-  onNavigate: (route: AppRoute) => void;
-};
 
 const isWeb = Platform.OS === "web";
 
@@ -31,9 +25,7 @@ const resourceIcons: Partial<Record<ResourceId, number>> = {
   meat: require("../../assets/images/General/meat.png"),
 };
 
-export function EmbassyExchange({
-  onNavigate: _onNavigate,
-}: EmbassyExchangeProps) {
+export function EmbassyExchange() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedResourceId, setSelectedResourceId] =
     useState<ResourceId>("meat");
@@ -136,164 +128,44 @@ export function EmbassyExchange({
           >
             <View style={styles.exchangePanelOverlay} />
             <View style={styles.exchangePanelContent}>
-              <View style={styles.selectorContainer}>
-                <TouchableOpacity
-                  style={styles.selectorBox}
-                  onPress={() => setIsDropdownOpen((prev) => !prev)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.selectorText}>
-                    {selectedResource.label}
-                  </Text>
-                  <Text style={styles.selectorChevron}>
-                    {isDropdownOpen ? "^" : "v"}
-                  </Text>
-                </TouchableOpacity>
+              <EmbassyResourceSelector
+                isDropdownOpen={isDropdownOpen}
+                onSelectResource={handleSelectResource}
+                onToggle={() => setIsDropdownOpen((prev) => !prev)}
+                options={embassyResourceOptions}
+                selectedLabel={selectedResource.label}
+              />
 
-                {isDropdownOpen ? (
-                  <View style={styles.dropdownMenu}>
-                    {embassyResourceOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={styles.dropdownOption}
-                        onPress={() => handleSelectResource(option.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.dropdownOptionText}>
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
+              <EmbassyInvoiceSummary
+                activeInvoiceRows={activeInvoiceRows}
+                hasTradeDraft={hasTradeDraft}
+                totalGoldValue={totalGoldValue}
+                resourceIcons={resourceIcons}
+              />
 
-              <View style={styles.headerRow}>
-                <Text style={styles.headerText}>Resources</Text>
-                <Text style={styles.headerText}>Gold</Text>
-              </View>
-
-              <View style={styles.resourceRow}>
-                {hasTradeDraft ? (
-                  <>
-                    <View style={styles.invoiceSummary}>
-                      {activeInvoiceRows.map((row) => (
-                        <View key={row.id} style={styles.invoiceSummaryRow}>
-                          <Image
-                            source={
-                              resourceIcons[row.id] ?? resourceIcons.meat!
-                            }
-                            style={styles.resourceIcon}
-                          />
-                          <Text style={styles.resourceValue}>
-                            {formatDisplayNumber(row.amount)} {row.label}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                    <View style={styles.invoiceSummary}>
-                      <View style={styles.invoiceSummaryRow}>
-                        <Image
-                          source={resourceIcons.gold!}
-                          style={styles.resourceIcon}
-                        />
-                        <Text style={styles.resourceValue}>
-                          {formatDisplayNumber(totalGoldValue)}
-                        </Text>
-                      </View>
-                    </View>
-                  </>
-                ) : (
-                  <View style={styles.invoicePlaceholder}>
-                    <Text style={styles.invoicePlaceholderText}>
-                      No trade draft yet
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {activeInvoiceRows.length >= 2 ? (
-                <View style={styles.invoiceTotalRow}>
-                  <Text style={styles.invoiceTotalLabel}>Invoice Total</Text>
-                  <View style={styles.invoiceTotalValueWrap}>
-                    <Image
-                      source={resourceIcons.gold!}
-                      style={styles.invoiceTotalIcon}
-                    />
-                    <Text style={styles.invoiceTotalValue}>
-                      {formatDisplayNumber(totalGoldValue)}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-
-              <View style={styles.actionArea}>
-                <View style={styles.tradeLine}>
-                  <Text style={styles.tradeLineLabel}>
-                    {selectedResource.label}
-                  </Text>
-                  <View style={styles.tradeSliderBlock}>
-                    <View style={styles.tradeSliderHeader}>
-                      <Text style={styles.tradeSliderValue}>
-                        {formatDisplayNumber(selectedTradeAmount)}
-                      </Text>
-                      <Text style={styles.tradeSliderHint}>
-                        Owned:{" "}
-                        {formatDisplayNumber(selectedResourceOwnedAmount)}
-                        {"\n"}1 gold per {selectedResource.exchangeAmount}{" "}
-                        {selectedResource.label.toLowerCase()}
-                      </Text>
-                    </View>
-                    <Slider
-                      minimumValue={0}
-                      maximumValue={selectedResourceOwnedAmount}
-                      step={1}
-                      value={selectedTradeAmount}
-                      minimumTrackTintColor="#E9D7AC"
-                      maximumTrackTintColor="rgba(255, 255, 255, 0.28)"
-                      thumbTintColor="#F7E7B8"
-                      onValueChange={(value) =>
-                        handleTradeDraftChange(
-                          selectedResource.id,
-                          value === 0 ? "" : String(value),
-                        )
-                      }
-                    />
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.acceptButton}
-                  onPress={handleAccept}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.acceptButtonText}>Accept</Text>
-                </TouchableOpacity>
-              </View>
+              <EmbassyTradeControls
+                onAccept={handleAccept}
+                onValueChange={(value) =>
+                  handleTradeDraftChange(
+                    selectedResource.id,
+                    value === 0 ? "" : String(value),
+                  )
+                }
+                selectedResourceAmountOwned={selectedResourceOwnedAmount}
+                selectedResourceExchangeAmount={selectedResource.exchangeAmount}
+                selectedResourceLabel={selectedResource.label}
+                selectedTradeAmount={selectedTradeAmount}
+              />
             </View>
           </ImageBackground>
         </View>
 
-        <Modal
+        <GameMessageModal
           visible={showTradeErrorModal}
-          transparent={true}
-          animationType="fade"
-          presentationStyle="overFullScreen"
-          onRequestClose={() => setShowTradeErrorModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>TRADE FAILED</Text>
-              <Text style={styles.modalMessage}>{tradeErrorMessage}</Text>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setShowTradeErrorModal(false)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalButtonText}>UNDERSTOOD</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+          title="TRADE FAILED"
+          message={tradeErrorMessage}
+          onClose={() => setShowTradeErrorModal(false)}
+        />
       </View>
     </ImageBackground>
   );
@@ -353,283 +225,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 28,
-  },
-  selectorContainer: {
-    position: "relative",
-    zIndex: 5,
-  },
-  selectorBox: {
-    backgroundColor: "rgba(234, 225, 203, 0.95)",
-    borderRadius: 8,
-    minHeight: 56,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 2,
-    borderTopColor: "#FFF6DC",
-    borderLeftColor: "#FFF6DC",
-    borderRightColor: "#6B5231",
-    borderBottomColor: "#6B5231",
-    ...(isWeb
-      ? { boxShadow: "0 2px 2px rgba(0, 0, 0, 0.35)" }
-      : {
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.35,
-          shadowRadius: 2,
-          elevation: 3,
-        }),
-  },
-  selectorText: {
-    fontSize: isWeb ? 21 : 19,
-    color: "#2A1C0E",
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  selectorChevron: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#2A1C0E",
-  },
-  dropdownMenu: {
-    position: "absolute",
-    top: 42,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(228, 216, 191, 0.97)",
-    borderRadius: 8,
-    overflow: "hidden",
-    zIndex: 10,
-    borderWidth: 2,
-    borderColor: "#5C4427",
-    ...(isWeb
-      ? { boxShadow: "0 3px 3px rgba(0, 0, 0, 0.4)" }
-      : {
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.4,
-          shadowRadius: 3,
-          elevation: 4,
-        }),
-  },
-  dropdownOption: {
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(60, 43, 24, 0.45)",
-  },
-  dropdownOptionText: {
-    fontSize: 16,
-    color: "#2A1C0E",
-    fontWeight: "700",
-  },
-  headerRow: {
-    marginTop: 22,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerText: {
-    fontSize: isWeb ? 19 : 17,
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  resourceRow: {
-    marginTop: 14,
-    minHeight: 104,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
-  invoicePlaceholder: {
-    width: "100%",
-    minHeight: 34,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  invoicePlaceholderText: {
-    fontSize: isWeb ? 18 : 16,
-    color: "rgba(255, 255, 255, 0.55)",
-    fontStyle: "italic",
-  },
-  invoiceSummary: {
-    gap: 10,
-  },
-  invoiceSummaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  resourceIcon: {
-    width: 40,
-    height: 40,
-  },
-  resourceValue: {
-    fontSize: isWeb ? 20 : 18,
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  invoiceTotalRow: {
-    marginTop: 10,
-    paddingTop: 10,
-    paddingBottom: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.18)",
-  },
-  invoiceTotalLabel: {
-    fontSize: isWeb ? 18 : 16,
-    fontWeight: "700",
-    color: "#E9D7AC",
-  },
-  invoiceTotalValueWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  invoiceTotalIcon: {
-    width: 28,
-    height: 28,
-  },
-  invoiceTotalValue: {
-    fontSize: isWeb ? 22 : 20,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  actionArea: {
-    flex: 1,
-    justifyContent: "flex-end",
-    gap: 16,
-  },
-  tradeLine: {
-    gap: 10,
-  },
-  tradeLineLabel: {
-    fontSize: isWeb ? 17 : 15,
-    fontWeight: "700",
-    color: "#E9D7AC",
-    letterSpacing: 0.4,
-  },
-  tradeSliderBlock: {
-    backgroundColor: "rgba(14, 24, 20, 0.28)",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: "rgba(233, 215, 172, 0.18)",
-  },
-  tradeSliderHeader: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  tradeSliderValue: {
-    fontSize: isWeb ? 24 : 22,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  tradeSliderHint: {
-    fontSize: isWeb ? 14 : 13,
-    color: "rgba(255, 255, 255, 0.68)",
-    textAlign: "right",
-  },
-  acceptButton: {
-    backgroundColor: "rgba(226, 212, 178, 0.98)",
-    borderRadius: 9,
-    minHeight: 58,
-    paddingVertical: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderTopColor: "#FFF2C6",
-    borderLeftColor: "#FFF2C6",
-    borderRightColor: "#71542F",
-    borderBottomColor: "#71542F",
-    ...(isWeb
-      ? { boxShadow: "0 3px 2px rgba(0, 0, 0, 0.45)" }
-      : {
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.45,
-          shadowRadius: 2,
-          elevation: 5,
-        }),
-  },
-  acceptButtonText: {
-    fontSize: isWeb ? 21 : 19,
-    color: "#2C1D0C",
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    ...(isWeb
-      ? { textShadow: "0 1px 1px rgba(255, 255, 255, 0.35)" }
-      : {
-          textShadowColor: "rgba(255, 255, 255, 0.35)",
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 1,
-        }),
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.background,
-    borderWidth: 3,
-    borderColor: "#8B0000",
-    borderRadius: 15,
-    padding: 30,
-    margin: 20,
-    alignItems: "center",
-    ...(isWeb
-      ? { boxShadow: "0 0 10px rgba(255, 0, 0, 0.5)" }
-      : {
-          shadowColor: "#FF0000",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.5,
-          shadowRadius: 10,
-          elevation: 15,
-        }),
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#FF6B6B",
-    textAlign: "center",
-    marginBottom: 15,
-    ...(isWeb
-      ? { textShadow: "2px 2px 3px #000000" }
-      : {
-          textShadowColor: "#000000",
-          textShadowOffset: { width: 2, height: 2 },
-          textShadowRadius: 3,
-        }),
-  },
-  modalMessage: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  modalButton: {
-    backgroundColor: theme.colors.buttonLocked,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  modalButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "center",
   },
 });

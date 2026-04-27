@@ -20,8 +20,8 @@ function normalizeValue(value: string): string {
   return value.trim();
 }
 
-// Vi lader fortsat UI bruge "username" som login-felt.
-// Hvis feltet ikke er en email, mapper vi den til en stabil pseudo-email til Supabase Auth.
+// The UI still accepts "username" in the login field.
+// Non-email usernames are mapped to a stable pseudo-email for Supabase Auth.
 function toAuthEmail(usernameOrEmail: string): string {
   const normalized = normalizeValue(usernameOrEmail).toLowerCase();
 
@@ -98,7 +98,6 @@ async function ensureDefaultResources(profileId: string): Promise<void> {
 }
 
 async function ensureDefaultProfileFactions(profileId: string): Promise<void> {
-  // Vi opretter profile_factions én gang per profil ved at skippe, hvis der allerede findes data.
   const { count, error: countError } = await supabase
     .from('profile_factions')
     .select('id', { count: 'exact', head: true })
@@ -171,7 +170,6 @@ export async function registerUser(input: RegisterInput): Promise<TestUser> {
     throw new Error('Udfyld venligst alle felter.');
   }
 
-  // 1) Opret auth-bruger i Supabase Auth.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email: authEmail,
     password,
@@ -194,14 +192,10 @@ export async function registerUser(input: RegisterInput): Promise<TestUser> {
     throw new Error('Kunne ikke hente bruger-id efter registrering.');
   }
 
-  // 2) Opret/synk profil i profiles.
   await ensureProfile(userId, username);
-
-  // 3) Initialiser standard-spillerdata.
   await ensureDefaultResources(userId);
   await ensureDefaultProfileFactions(userId);
 
-  // 4) Returner den profilform, resten af appen bruger.
   return getProfileAsUser(userId);
 }
 
@@ -214,7 +208,6 @@ export async function loginUser(usernameInput: string, passwordInput: string): P
     throw new Error('Udfyld venligst brugernavn og password.');
   }
 
-  // Login sker mod Supabase Auth (ikke mod en users-tabel).
   const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -230,8 +223,6 @@ export async function loginUser(usernameInput: string, passwordInput: string): P
     throw new Error('Login lykkedes, men bruger-id mangler.');
   }
 
-  // Sikr at profil findes, hvis den mangler fra ældre dataflow.
-  // Hvis login sker med email, bruger vi metadata-username for ikke at overskrive med email.
   const metadataUsername =
     typeof signInData.user?.user_metadata?.username === 'string'
       ? normalizeValue(signInData.user.user_metadata.username).toLowerCase()

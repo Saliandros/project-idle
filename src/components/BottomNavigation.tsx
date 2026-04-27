@@ -4,12 +4,13 @@ import { useEffect, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppRoute } from '../constants/routes';
 import { theme } from '../theme/theme';
 
+export type BottomNavigationRoute = 'index' | 'stronghold-hub' | 'embassy-exchange';
+
 type BottomNavigationProps = {
-  route: AppRoute;
-  onRouteChange: (route: AppRoute) => void;
+  route: BottomNavigationRoute;
+  onRouteChange: (route: BottomNavigationRoute) => void;
   autoSaveText?: string;
   autoSaveTone?: 'normal' | 'error';
 };
@@ -22,9 +23,9 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const clickSoundUri = useRef<string | null>(null);
   const { width } = useWindowDimensions();
-  const isHome = route === AppRoute.Home;
-  const isFactions = route === AppRoute.Factions;
-  const isEmbassyExchange = route === AppRoute.EmbassyExchange;
+  const isHome = route === 'index';
+  const isStrongholdHub = route === 'stronghold-hub';
+  const isEmbassyExchange = route === 'embassy-exchange';
   const isDesktopWeb = Platform.OS === 'web' && width >= 1024;
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export function BottomNavigation({
     }
   };
 
-  const handleRouteChange = (nextRoute: AppRoute) => {
+  const handleRouteChange = (nextRoute: BottomNavigationRoute) => {
     void playClick();
     onRouteChange(nextRoute);
   };
@@ -109,17 +110,17 @@ export function BottomNavigation({
           style={({ pressed }) => [styles.navButton, isHome && styles.navButtonActive, pressed && styles.navButtonPressed]}
           accessibilityRole="button"
           accessibilityLabel="Home"
-          onPress={() => handleRouteChange(AppRoute.Home)}
+          onPress={() => handleRouteChange('index')}
         >
           {renderNavContent(isHome ? 'home' : 'home-outline', 'Home')}
         </Pressable>
 
         {!isDesktopWeb ? (
           <Pressable
-            style={({ pressed }) => [styles.navButton, isFactions && styles.navButtonActive, pressed && styles.navButtonPressed]}
+            style={({ pressed }) => [styles.navButton, isStrongholdHub && styles.navButtonActive, pressed && styles.navButtonPressed]}
             accessibilityRole="button"
             accessibilityLabel="Stronghold"
-            onPress={() => handleRouteChange(AppRoute.Factions)}
+            onPress={() => handleRouteChange('stronghold-hub')}
           >
             {renderNavContent('shield-half', 'Stronghold')}
           </Pressable>
@@ -129,7 +130,7 @@ export function BottomNavigation({
           style={({ pressed }) => [styles.navButton, isEmbassyExchange && styles.navButtonActive, pressed && styles.navButtonPressed]}
           accessibilityRole="button"
           accessibilityLabel="Embassy"
-          onPress={() => handleRouteChange(AppRoute.EmbassyExchange)}
+          onPress={() => handleRouteChange('embassy-exchange')}
         >
           {renderNavContent('swap-horizontal', 'Embassy Exchange')}
         </Pressable>

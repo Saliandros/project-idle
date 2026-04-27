@@ -1,4 +1,4 @@
-import { AppRoute } from '../constants/routes';
+import type { Href } from 'expo-router';
 
 export type FactionId = 'lizardman' | 'human' | 'elves';
 
@@ -20,7 +20,7 @@ export type FactionDefinition = {
   clickValue: number;
   lockedName: string;
   unlockCostGold: number;
-  route: AppRoute | null;
+  route: Href | null;
 };
 
 export type ChampionDefinition = {
